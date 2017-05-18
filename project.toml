@@ -1,0 +1,25 @@
+[project]
+version = [0, 0, 1]
+type = 'exe'
+
+# [[project.use]]
+# name = ''
+# as = ''
+[[project.external]]
+name = 'sdl'
+libraries = 'libSDL2.so'
+includes = '/usr/include/SDL2'
+
+
+[test]
+[[test.use]]
+name = 'Meliorate'
+as = 'shared'
+
+[[test.external]]
+name = 'snowhouse'
+includes = '/home/david/Projects/3rdParty/snowhouse'
+
+# [[test.use]]
+# name = ''
+# as = ''
