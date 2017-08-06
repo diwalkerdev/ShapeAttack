@@ -3,6 +3,7 @@
     {
       "name": "Linux",
       "includePath": [
+        "/home/david/Projects/ShapeAttack/src/main.cpp",
         "/usr/include"
       ]
     }
