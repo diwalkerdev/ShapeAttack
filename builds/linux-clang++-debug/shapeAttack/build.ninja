@@ -1,0 +1,24 @@
+include $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/rules.ninja
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o: $
+    compile /home/dwalker0044/Projects/ShapeAttack/src/main.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/ShapeAttack/include $
+      -I/usr/include/SDL2
+  flags = -std=c++17 -g
+  defines = 
+
+build ShapeAttack.exe: exe $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/ShapeAttack/include $
+      -I/usr/include/SDL2
+  flags = -std=c++17 -g
+  defines = 
+  exe_name = ShapeAttack.exe
+  linker_args = -Wl,-rpath='$$ORIGIN' -l:libSDL2.so
+
+build shapeAttack: phony ShapeAttack.exe
+
