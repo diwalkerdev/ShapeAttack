@@ -1,0 +1,3 @@
+[submodule "lib/Meliorate"]
+	path = lib/Meliorate
+	url = git@github.com:diwalkerdev/Meliorate.git
