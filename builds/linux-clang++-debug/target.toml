@@ -29,8 +29,7 @@ defines = []
 [[builds]]
     name = "shapeAttack"
     buildRule = "exe"
-    outputName = "ShapeAttack.exe"
+    outputName = "ShapeAttack"
     srcDirs = ["src"]
     includePaths = ["include", "/usr/include/SDL2"]
-    #libraryPaths = []
-    libraries = ["libSDL2.so"]
+    libraries = ["SDL2"]

@@ -18,7 +18,7 @@ build ShapeAttack.exe: exe $
   flags = -std=c++17 -g
   defines = 
   exe_name = ShapeAttack.exe
-  linker_args = -Wl,-rpath='$$ORIGIN' -l:libSDL2.so
+  linker_args = -Wl,-rpath='$$ORIGIN' -lSDL2
 
 build shapeAttack: phony ShapeAttack.exe
 
