@@ -19,10 +19,10 @@ constexpr static const auto screen = Screen();
 
 
 
-static linalg::Matrix<float, 4, 2> points{{320, 200,
-                                         300, 240,
-                                         340, 240,
-                                         320, 200}};
+static linalg::Matrix<float, 4, 3> points{{0,  20, 1,
+                                          20, -20, 1,
+                                         -20, -20, 1,
+                                           0,  20, 1}};
 
 static linalg::Matrix<int, 5, 2> square{{ 0,  0, 
                                           0, 40, 
@@ -95,7 +95,7 @@ int main()
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        auto rotated = points * rrotzf(float(2*M_PI*i / 180));
+        auto rotated = points * rtransf(float(2*M_PI*i / 180.f), 320.f, 240.f);
         std::cout << rotated;
         int new_points[points.NumRows * points.NumCols];
 
