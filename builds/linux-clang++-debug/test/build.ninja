@@ -7,8 +7,9 @@ build $
   compiler = clang++
   includes = -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
-      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include
-  flags = -std=c++17 -g
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/LinAlg/include
+  flags = -std=c++20 -g
   defines = 
 
 build $
@@ -17,8 +18,9 @@ build $
   compiler = clang++
   includes = -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
-      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include
-  flags = -std=c++17 -g
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/LinAlg/include
+  flags = -std=c++20 -g
   defines = 
 
 build Tests.exe: exe $
@@ -27,8 +29,9 @@ build Tests.exe: exe $
   compiler = clang++
   includes = -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
-      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include
-  flags = -std=c++17 -g
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/LinAlg/include
+  flags = -std=c++20 -g
   defines = 
   exe_name = Tests.exe
   linker_args = -Wl,-rpath='$$ORIGIN' -lSDL2

@@ -6,7 +6,7 @@ ar = "ar"
 compilerFrontend="gcc"
 
 flags = [
-    "-std=c++17",
+    "-std=c++20",
     "-g"
 ]
 
@@ -31,7 +31,11 @@ defines = []
     buildRule = "exe"
     outputName = "ShapeAttack"
     srcDirs = ["src"]
-    includePaths = ["include", "/usr/include/SDL2"]
+    includePaths = [
+        "include", 
+        "/usr/include/SDL2",
+        "lib/LinAlg/include"
+    ]
     libraries = ["SDL2"]
 
 
@@ -40,5 +44,10 @@ defines = []
     buildRule = "exe"
     outputName = "Tests"
     srcDirs = ["test"]
-    includePaths = ["/usr/include/SDL2", "include", "lib/Meliorate/include"]
+    includePaths = [
+        "/usr/include/SDL2", 
+        "include", 
+        "lib/Meliorate/include",
+        "lib/LinAlg/include"
+    ]
     libraries = ["SDL2"]
