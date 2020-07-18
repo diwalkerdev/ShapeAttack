@@ -10,13 +10,16 @@
 
 #include "screen.h"
 
+#include "linalg/matrix.h"
+#include "linalg/util.h"
+
 constexpr static const auto screen = Screen();
 
 #define POINTS_COUNT 4
 
-#include "linalg/matrix.h"
 
-static linalg::Matrix<int, 4, 2> points{{320, 200,
+
+static linalg::Matrix<float, 4, 2> points{{320, 200,
                                          300, 240,
                                          340, 240,
                                          320, 200}};
@@ -92,7 +95,16 @@ int main()
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        SDL_RenderDrawLines(renderer, (SDL_Point*)(&points.data[0]), points.NumRows);
+        auto rotated = points * rrotzf(float(2*M_PI*i / 180));
+        std::cout << rotated;
+        int new_points[points.NumRows * points.NumCols];
+
+        for (int i=0; i<points.Size; ++i){
+            float val = rotated.data[i];
+            new_points[i] = int(val);
+        }
+
+        SDL_RenderDrawLines(renderer, (SDL_Point*)(&new_points[0]), points.NumRows);
         SDL_RenderPresent(renderer);
 
         SDL_RenderDrawLines(renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
@@ -101,7 +113,7 @@ int main()
         // Update the screen with rendering actions
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(10);
+        SDL_Delay(50);
     }
 
     SDL_DestroyRenderer(renderer);

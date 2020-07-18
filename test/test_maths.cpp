@@ -1,5 +1,6 @@
 #include "meliorate/meliorate.h"
 #include "linalg/matrix.h"
+#include "linalg/util.h"
 
 
 void test_make_matrix()
@@ -15,14 +16,25 @@ void test_make_matrix()
 
 // Not extracted as a test function because the function name
 // does not begin with "test".
-int not_a_test_function()
+void test_matrix_multiplication()
 {
-    return 0;
+    linalg::Matrixf<2, 2> A{{1.f, 2.f, 3.f, 4.f}};
+    linalg::Matrixf<2, 2> B{{1.f, 2.f, 3.f, 4.f}};
+
+    auto C = A * B;
+    std::cout << C;
 }
 
-void test_that_error_is_thrown()
+void test_rotations()
 {
-    throw std::runtime_error("Something went wrong.");
+    auto alpha = 2 * M_PI / 4; 
+
+    linalg::Matrixf<1, 2> A{{1.f, 0.f}};
+
+    auto X = A * rrotzf(alpha);
+    std::cout << A;
+    std::cout << X;
+
 }
 
 
