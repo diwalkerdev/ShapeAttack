@@ -1,8 +1,16 @@
 #include "meliorate/meliorate.h"
+#include "linalg/matrix.h"
 
-void test_that_something_is_true()
+
+void test_make_matrix()
 {
     // code goes here.
+    linalg::Matrix<float, 3, 2> A{{1.f, 2.f, 3.f, 4.f, 5.f, 6.f}};
+    std::cout << A;
+    // prints:
+    // 1,2
+    // 3,4
+    // 5,6
 }
 
 // Not extracted as a test function because the function name

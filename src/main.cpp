@@ -14,10 +14,18 @@ constexpr static const auto screen = Screen();
 
 #define POINTS_COUNT 4
 
-static SDL_Point points[POINTS_COUNT] = {{320, 200},
-                                         {300, 240},
-                                         {340, 240},
-                                         {320, 200}};
+#include "linalg/matrix.h"
+
+static linalg::Matrix<int, 4, 2> points{{320, 200,
+                                         300, 240,
+                                         340, 240,
+                                         320, 200}};
+
+static linalg::Matrix<int, 5, 2> square{{ 0,  0, 
+                                          0, 40, 
+                                         40, 40, 
+                                         40,  0,
+                                          0,  0}};
 
 
 void handle_player_input()
@@ -84,7 +92,10 @@ int main()
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        SDL_RenderDrawLines(renderer, points, POINTS_COUNT);
+        SDL_RenderDrawLines(renderer, (SDL_Point*)(&points.data[0]), points.NumRows);
+        SDL_RenderPresent(renderer);
+
+        SDL_RenderDrawLines(renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
         SDL_RenderPresent(renderer);
 
         // Update the screen with rendering actions
