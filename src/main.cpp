@@ -15,6 +15,33 @@
 
 constexpr static const auto screen = Screen();
 
+template <typename Scalar, size_t NumSegments>
+static linalg::Matrix<Scalar, NumSegments + 2, 3> make_circle_points(float radius)
+{
+    static_assert(NumSegments > 2);
+    constexpr float seg_size = (2 * M_PI / NumSegments);
+
+    linalg::Matrix<Scalar, NumSegments + 2, 3> points;
+
+    float theta = 0;
+
+    for (int i = 0; i < NumSegments + 1; ++i)
+    {
+        points[i][0] = cos(theta) * radius;
+        points[i][1] = sin(theta) * radius;
+        points[i][2] = 1;
+        theta += seg_size;
+    }
+
+    int k = NumSegments + 1;
+
+    points[k][0] = 0;
+    points[k][1] = 0;
+    points[k][2] = 1;
+
+    return points;
+}
+
 // clang-format off
 static linalg::Matrix<float, 5, 3> points {{
       0,  20, 1, 
@@ -32,6 +59,8 @@ static linalg::Matrix<int, 5, 2> square {{
      0,  0
 }};
 // clang-format on
+
+static auto circle = make_circle_points<float, 5>(20);
 
 static float turn      = 0;
 static bool  quit_game = false;
@@ -133,6 +162,8 @@ int main()
     float omega = 0;
     float theta = 0;
 
+    auto const& player = circle;
+
     while (!quit_game)
     {
         handle_input();
@@ -152,18 +183,18 @@ int main()
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        auto rotated = points * rtransf(float(theta), 320.f, 240.f);
+        auto rotated = player * rtransf(float(theta), 320.f, 240.f);
 
-        int new_points[points.NumRows * points.NumCols];
+        int new_player[player.NumRows * player.NumCols];
 
-        for (int i = 0; i < points.Size; ++i)
+        for (int i = 0; i < player.Size; ++i)
         {
             float val     = rotated.data[i];
-            new_points[i] = int(val);
+            new_player[i] = int(val);
         }
 
         SDL_RenderDrawLines(
-            renderer, (SDL_Point*)(&new_points[0]), points.NumRows);
+            renderer, (SDL_Point*)(&new_player[0]), player.NumRows);
         SDL_RenderPresent(renderer);
 
         SDL_RenderDrawLines(
