@@ -6,25 +6,26 @@
 #include <span>
 #include <stddef.h>
 
-namespace linalg
-{
+namespace linalg {
 
 template <typename Scalar, size_t Rows, size_t Cols>
-struct Matrix
-{
+struct Matrix {
     static const size_t NumCols = Cols;
     static const size_t NumRows = Rows;
-    static const size_t Size = Cols * Rows;
+    static const size_t Size    = Cols * Rows;
 
     using array2d = std::array<Scalar, Cols * Rows>;
     array2d data;
     // std::shared_ptr<array2d> data = std::make_shared<array2d>();
 
-    Matrix() = default;
-    Matrix(Matrix<Scalar, Rows,Cols> const& other) = default;
-    Matrix(Matrix<Scalar, Rows,Cols> && other) = default;
+    Matrix()                                        = default;
+    Matrix(Matrix<Scalar, Rows, Cols> const& other) = default;
+    Matrix(Matrix<Scalar, Rows, Cols>&& other)      = default;
 
-    Matrix(array2d initializer) : data(initializer) {}
+    Matrix(array2d initializer)
+        : data(initializer)
+    {
+    }
 
     // static
     // Matrix<Scalar, Rows, Cols> zero()
@@ -93,7 +94,7 @@ auto operator*(MLeft A, MRight B) -> Matrix<decltype(A[0][0] * B[0][0]), MLeft::
     static_assert(MLeft::NumCols == MRight::NumRows,
                   "Invalid matrix dimensions.");
 
-    Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols> result{{0}};
+    Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols> result {{0}};
 
     size_t i, j, k;
 
@@ -127,8 +128,8 @@ using Matrixd = Matrix<double, Rows, Cols>;
 //////////////////////////////////////////////////////////////////////////////
 
 template <typename Scalar, size_t Rows, size_t Cols>
-std::ostream &operator<<(std::ostream &                      os,
-                         linalg::Matrix<Scalar, Rows, Cols> &m)
+std::ostream& operator<<(std::ostream&                       os,
+                         linalg::Matrix<Scalar, Rows, Cols>& m)
 {
     for (size_t r = 0; r < Rows; ++r)
     {

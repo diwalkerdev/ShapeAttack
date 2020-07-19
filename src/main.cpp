@@ -16,7 +16,7 @@
 constexpr static const auto screen = Screen();
 
 // clang-format off
-static linalg::Matrix<float, 5, 3> points{{
+static linalg::Matrix<float, 5, 3> points {{
       0,  20, 1, 
      20, -20, 1, 
     -20, -20, 1, 
@@ -24,7 +24,7 @@ static linalg::Matrix<float, 5, 3> points{{
       0,   0, 1
 }};
 
-static linalg::Matrix<int, 5, 2> square{{
+static linalg::Matrix<int, 5, 2> square {{
      0,  0, 
      0, 40, 
     40, 40, 
@@ -104,7 +104,7 @@ int main()
     }
 
     // Create window
-    auto *window = SDL_CreateWindow("SDL Tutorial",
+    auto* window = SDL_CreateWindow("SDL Tutorial",
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
                                     screen.width,
@@ -118,7 +118,7 @@ int main()
     }
 
     // Create renderer
-    auto *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    auto* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr)
     {
         printf("Renderer could not be created! SDL_Error: %s\n",
@@ -127,7 +127,7 @@ int main()
     }
 
     // Init game objects
-    SDL_Rect background_rect{0, 0, screen.width, screen.height};
+    SDL_Rect background_rect {0, 0, screen.width, screen.height};
 
     float alpha = 0;
     float omega = 0;
@@ -163,11 +163,11 @@ int main()
         }
 
         SDL_RenderDrawLines(
-            renderer, (SDL_Point *)(&new_points[0]), points.NumRows);
+            renderer, (SDL_Point*)(&new_points[0]), points.NumRows);
         SDL_RenderPresent(renderer);
 
         SDL_RenderDrawLines(
-            renderer, (SDL_Point *)(&square.data[0]), square.NumRows);
+            renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
         SDL_RenderPresent(renderer);
 
         // Update the screen with rendering actions
