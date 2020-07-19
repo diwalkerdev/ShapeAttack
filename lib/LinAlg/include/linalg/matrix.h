@@ -88,13 +88,12 @@ struct Matrix
 //////////////////////////////////////////////////////////////////////////////
 
 template <typename MLeft, typename MRight>
-auto operator*(MLeft A, MRight B) -> linalg::
-    Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols>
+auto operator*(MLeft A, MRight B) -> Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols>
 {
     static_assert(MLeft::NumCols == MRight::NumRows,
                   "Invalid matrix dimensions.");
 
-    linalg::Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols> result{{0}};
+    Matrix<decltype(A[0][0] * B[0][0]), MLeft::NumRows, MRight::NumCols> result{{0}};
 
     size_t i, j, k;
 

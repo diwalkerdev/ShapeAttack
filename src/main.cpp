@@ -15,37 +15,81 @@
 
 constexpr static const auto screen = Screen();
 
-#define POINTS_COUNT 4
+// clang-format off
+static linalg::Matrix<float, 5, 3> points{{
+      0,  20, 1, 
+     20, -20, 1, 
+    -20, -20, 1, 
+      0,  20, 1, 
+      0,   0, 1
+}};
 
+static linalg::Matrix<int, 5, 2> square{{
+     0,  0, 
+     0, 40, 
+    40, 40, 
+    40,  0, 
+     0,  0
+}};
+// clang-format on
 
+static float turn      = 0;
+static bool  quit_game = false;
 
-static linalg::Matrix<float, 4, 3> points{{0,  20, 1,
-                                          20, -20, 1,
-                                         -20, -20, 1,
-                                           0,  20, 1}};
-
-static linalg::Matrix<int, 5, 2> square{{ 0,  0, 
-                                          0, 40, 
-                                         40, 40, 
-                                         40,  0,
-                                          0,  0}};
-
-
-void handle_player_input()
+void handle_input()
 {
+
     SDL_Event event;
 
-    SDL_PollEvent(&event);
-    switch (event.type)
+    while (SDL_PollEvent(&event) != 0)
     {
-    case SDL_KEYDOWN:
-    {
-        if (event.key.keysym.sym == SDLK_SPACE)
+        if (event.type == SDL_QUIT)
         {
-
         }
-    }
-    }
+        else if (event.type == SDL_KEYUP)
+        {
+            switch (event.key.keysym.sym)
+            {
+            case SDLK_UP:
+                break;
+            case SDLK_DOWN:
+                break;
+            case SDLK_LEFT:
+                turn = 0;
+                break;
+            case SDLK_RIGHT:
+                turn = 0;
+                break;
+            case SDLK_LSHIFT:
+                break;
+            default:
+                break;
+            }
+        }
+        else if (event.type == SDL_KEYDOWN)
+        {
+            switch (event.key.keysym.sym)
+            {
+            case SDLK_UP:
+                break;
+            case SDLK_DOWN:
+                break;
+            case SDLK_LEFT:
+                turn = -1;
+                break;
+            case SDLK_RIGHT:
+                turn = 1;
+                break;
+            case SDLK_LSHIFT:
+                break;
+            case SDLK_ESCAPE:
+                quit_game = true;
+                break;
+            default:
+                break;
+            }
+        }
+    } // End event loop
 }
 
 
@@ -85,35 +129,51 @@ int main()
     // Init game objects
     SDL_Rect background_rect{0, 0, screen.width, screen.height};
 
-    for (int i = 0; i < 300; i++)
+    float alpha = 0;
+    float omega = 0;
+    float theta = 0;
+
+    while (!quit_game)
     {
-        handle_player_input();
+        handle_input();
 
         // Clear the screen
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderFillRect(renderer, &background_rect);
 
+        float dt = 1 / 30.f;
+        float A  = 0.2;
+        float fd = A * pow(omega, 2);
+        float d  = omega > 0 ? -1 : 1;
+        alpha    = (turn * 20) + (fd * d);
+        omega    = omega + (alpha * dt);
+        theta    = theta + (omega * dt);
+        std::cout << alpha << " " << turn << " " << fd << "\n";
+
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        auto rotated = points * rtransf(float(2*M_PI*i / 180.f), 320.f, 240.f);
-        std::cout << rotated;
+        auto rotated = points * rtransf(float(theta), 320.f, 240.f);
+
         int new_points[points.NumRows * points.NumCols];
 
-        for (int i=0; i<points.Size; ++i){
-            float val = rotated.data[i];
+        for (int i = 0; i < points.Size; ++i)
+        {
+            float val     = rotated.data[i];
             new_points[i] = int(val);
         }
 
-        SDL_RenderDrawLines(renderer, (SDL_Point*)(&new_points[0]), points.NumRows);
+        SDL_RenderDrawLines(
+            renderer, (SDL_Point *)(&new_points[0]), points.NumRows);
         SDL_RenderPresent(renderer);
 
-        SDL_RenderDrawLines(renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
+        SDL_RenderDrawLines(
+            renderer, (SDL_Point *)(&square.data[0]), square.NumRows);
         SDL_RenderPresent(renderer);
 
         // Update the screen with rendering actions
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(50);
+        SDL_Delay(33);
     }
 
     SDL_DestroyRenderer(renderer);
