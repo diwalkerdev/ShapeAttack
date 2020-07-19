@@ -121,6 +121,56 @@ void handle_input()
     } // End event loop
 }
 
+#include <vector>
+
+
+template <size_t NumSegs>
+auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))>
+{
+    constexpr int xs = 11;
+    constexpr int ys = 11;
+
+    constexpr int num_rows = xs * ys;
+
+    linalg::Matrixf<num_rows, 2> points;
+
+    int row = 0;
+
+    for (int i = 0; i < xs; ++i)
+    {
+        for (int k = 0; k < ys; ++k)
+        {
+            points[row][0] = float(k);
+            points[row][1] = float(i);
+            // points[row][2] = float(1);
+            ++row;
+        }
+    }
+
+    // TODO: implement scalar multiplication.
+    auto new_points(points * 50);
+    std::cout << new_points;
+
+    std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))> circles;
+
+    for (int i = 0; i < num_rows; ++i)
+    {
+        float x = new_points[i][0];
+        float y = new_points[i][1];
+
+        auto circle = make_circle_points<float, NumSegs>(10);
+        auto transc = circle * rtransf(0, x, y);
+
+        std::cout << circle << "\n";
+        std::cout << transc << "\n";
+
+        circles.push_back(transc);
+    }
+
+
+    return circles;
+}
+
 
 int main()
 {
@@ -164,6 +214,8 @@ int main()
 
     auto const& player = circle;
 
+    auto grid = make_grid<8>();
+
     while (!quit_game)
     {
         handle_input();
@@ -179,7 +231,7 @@ int main()
         alpha    = (turn * 20) + (fd * d);
         omega    = omega + (alpha * dt);
         theta    = theta + (omega * dt);
-        std::cout << alpha << " " << turn << " " << fd << "\n";
+        // std::cout << alpha << " " << turn << " " << fd << "\n";
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
@@ -195,11 +247,24 @@ int main()
 
         SDL_RenderDrawLines(
             renderer, (SDL_Point*)(&new_player[0]), player.NumRows);
-        SDL_RenderPresent(renderer);
+        // SDL_RenderPresent(renderer);
 
         SDL_RenderDrawLines(
             renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
-        SDL_RenderPresent(renderer);
+        // SDL_RenderPresent(renderer);
+
+        for (auto& grid_point : grid)
+        {
+            int new_point[grid_point.Size];
+            for (int i = 0; i < grid_point.Size; ++i)
+            {
+                float val    = grid_point.data[i];
+                new_point[i] = int(val);
+            }
+            SDL_RenderDrawLines(
+                renderer, (SDL_Point*)(&new_point[0]), grid_point.NumRows);
+            // SDL_RenderPresent(renderer);
+        }
 
         // Update the screen with rendering actions
         SDL_RenderPresent(renderer);

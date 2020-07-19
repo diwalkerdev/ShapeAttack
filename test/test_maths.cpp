@@ -25,13 +25,31 @@ void test_matrix_multiplication()
     std::cout << C;
 }
 
-void test_rotations()
+void test_rotations_vec()
 {
     auto alpha = 2 * M_PI / 4;
 
     linalg::Matrixf<1, 2> A {{1.f, 0.f}};
 
     auto X = A * rrotzf(alpha);
+    std::cout << A;
+    std::cout << X;
+}
+
+void test_rotations_mat()
+{
+    auto alpha = 2 * M_PI / 4;
+
+    // clang-format off
+    linalg::Matrixf<3, 3> A {{
+        1.f, 0.f, 1.f,
+        0.f, 1.f, 1.f,
+        0.f, 1.f, 1.f,
+    }};
+    // clang-format on
+
+    auto X = A * rtransf(alpha, 0, 0);
+
     std::cout << A;
     std::cout << X;
 }

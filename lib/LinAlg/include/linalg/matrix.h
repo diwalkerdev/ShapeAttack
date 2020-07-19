@@ -2,6 +2,7 @@
 #define LINALG_MATRIX_H
 
 #include <array>
+#include <iostream>
 #include <memory>
 #include <span>
 #include <stddef.h>
@@ -107,6 +108,20 @@ auto operator*(MLeft A, MRight B) -> Matrix<decltype(A[0][0] * B[0][0]), MLeft::
                 result[i][j] += A[i][k] * B[k][j];
             }
         }
+    }
+
+    return result;
+}
+
+
+template <typename MLeft, typename Scalar>
+auto operator*(MLeft A, Scalar B) -> Matrix<decltype(A[0][0] * B), MLeft::NumRows, MLeft::NumCols>
+{
+    Matrix<decltype(A[0][0] * B), MLeft::NumRows, MLeft::NumCols> result(A);
+
+    for (size_t i = 0; i < MLeft::Size; ++i)
+    {
+        result.data[i] *= B;
     }
 
     return result;
