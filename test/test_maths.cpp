@@ -54,10 +54,10 @@ void test_rotations_mat()
     std::cout << X;
 }
 
-
-void test_that_the_result_is_42()
+void test_row_iter()
 {
-    // code goes here.
+    linalg::Matrixf<2, 2> A {{1.f, 2.f, 3.f, 4.f}};
+    std::cout << A;
 }
 
 // Not extracted as a test function because the function is static.

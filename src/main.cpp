@@ -123,7 +123,7 @@ void handle_input()
 
 #include <vector>
 
-
+/*
 template <size_t NumSegs>
 auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))>
 {
@@ -147,22 +147,18 @@ auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) *
         }
     }
 
-    // TODO: implement scalar multiplication.
-    auto new_points(points * 50);
-    std::cout << new_points;
+    points *= 50;
+    std::cout << points;
 
     std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))> circles;
 
     for (int i = 0; i < num_rows; ++i)
     {
-        float x = new_points[i][0];
-        float y = new_points[i][1];
+        float x = points[i][0];
+        float y = points[i][1];
 
         auto circle = make_circle_points<float, NumSegs>(10);
         auto transc = circle * rtransf(0, x, y);
-
-        std::cout << circle << "\n";
-        std::cout << transc << "\n";
 
         circles.push_back(transc);
     }
@@ -170,7 +166,7 @@ auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) *
 
     return circles;
 }
-
+*/
 
 int main()
 {
@@ -212,9 +208,9 @@ int main()
     float omega = 0;
     float theta = 0;
 
-    auto const& player = circle;
+    auto& player = circle;
 
-    auto grid = make_grid<8>();
+    // auto grid = make_grid<8>();
 
     while (!quit_game)
     {
@@ -253,18 +249,18 @@ int main()
             renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
         // SDL_RenderPresent(renderer);
 
-        for (auto& grid_point : grid)
-        {
-            int new_point[grid_point.Size];
-            for (int i = 0; i < grid_point.Size; ++i)
-            {
-                float val    = grid_point.data[i];
-                new_point[i] = int(val);
-            }
-            SDL_RenderDrawLines(
-                renderer, (SDL_Point*)(&new_point[0]), grid_point.NumRows);
-            // SDL_RenderPresent(renderer);
-        }
+        // for (auto& grid_point : grid)
+        // {
+        //     int new_point[grid_point.Size];
+        //     for (int i = 0; i < grid_point.Size; ++i)
+        //     {
+        //         float val    = grid_point.data[i];
+        //         new_point[i] = int(val);
+        //     }
+        //     SDL_RenderDrawLines(
+        //         renderer, (SDL_Point*)(&new_point[0]), grid_point.NumRows);
+        //     // SDL_RenderPresent(renderer);
+        // }
 
         // Update the screen with rendering actions
         SDL_RenderPresent(renderer);
