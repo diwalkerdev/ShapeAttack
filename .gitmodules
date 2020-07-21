@@ -1,3 +1,6 @@
 [submodule "lib/Meliorate"]
 	path = lib/Meliorate
 	url = git@github.com:diwalkerdev/Meliorate.git
+[submodule "lib/LinAlg"]
+	path = lib/LinAlg
+	url = git@github.com:diwalkerdev/LinAlg.git
