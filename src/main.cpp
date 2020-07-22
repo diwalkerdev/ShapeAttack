@@ -122,7 +122,26 @@ void handle_input()
 }
 
 #include <vector>
+#include <numeric>
+#include <algorithm>
 
+template <size_t StartValue, size_t EndValue>
+std::vector<int> irange()
+{
+    static_assert(EndValue > StartValue);
+
+    constexpr int size = EndValue - StartValue;
+
+    std::vector<int> v(size);
+    std::iota(v.begin(), v.end(), StartValue);
+    return v;
+}
+
+template <size_t EndValue>
+std::vector<int> irange()
+{
+    return irange<0, EndValue>();
+}
 
 template <size_t Xs, size_t Ys, size_t NumSegs>
 auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
@@ -133,9 +152,9 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
 
     int row = 0;
 
-    for (int i = 0; i < Xs; ++i)
+    for (auto i : irange<Xs>())
     {
-        for (int k = 0; k < Ys; ++k)
+        for (auto k : irange<Ys>())
         {
             points[row][0] = float(k);
             points[row][1] = float(i);
@@ -161,23 +180,43 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
     return circles;
 }
 
+
+template <int NumLines>
+auto make_grid_lines()
+{
+    linalg::Matrixf<NumLines * 2, 4> grid;
+
+    float length = NumLines;
+
+    for (auto i : irange<NumLines>())
+    {
+        grid[i][0] = 0;
+        grid[i][1] = i;
+        grid[i][2] = length;
+        grid[i][3] = i;
+    }
+
+    for (auto i : irange<NumLines>())
+    {
+        grid[i + NumLines][0] = i;
+        grid[i + NumLines][1] = 0;
+        grid[i + NumLines][2] = i;
+        grid[i + NumLines][3] = length;
+    }
+
+    grid *= 40;
+
+    std::cout << grid;
+
+    return grid;
+}
+
+
 template <size_t Xs, size_t Ys>
 auto make_grid_points() -> std::vector<linalg::Matrixf<8 + 2, 2>>
 {
     return make_grid_points<Xs, Ys, 8>();
 }
-
-template <size_t S, typename M>
-void copy_to_points(std::array<int, S>& points_array, M& m)
-{
-    static_assert(M::Size <= S);
-
-    for (int i = 0; i < M::Size; ++i)
-    {
-        points_array[i] = (int)m.data[i];
-    }
-}
-
 
 int main()
 {
@@ -223,6 +262,8 @@ int main()
 
     auto grid = make_grid_points<11, 11>();
 
+    auto grid_lines = make_grid_lines<10>();
+
     std::array<int, 20> points_array;
 
     while (!quit_game)
@@ -245,15 +286,18 @@ int main()
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
         auto rotated = player * rtransf(float(theta), 320.f, 240.f);
 
-        copy_to_points(points_array, rotated);
-        SDL_RenderDrawLines(
-            renderer, (SDL_Point*)(&points_array[0]), player.NumRows);
+        SDL_RenderDrawLinesF(
+            renderer, (SDL_FPoint*)(&rotated.data[0]), player.NumRows);
 
         for (auto& grid_point : grid)
         {
-            copy_to_points(points_array, grid_point);
-            SDL_RenderDrawLines(
-                renderer, (SDL_Point*)(&points_array[0]), grid_point.NumRows);
+            SDL_RenderDrawLinesF(
+                renderer, (SDL_FPoint*)(&grid_point.data[0]), grid_point.NumRows);
+        }
+
+        for (auto r : iter(grid_lines))
+        {
+            SDL_RenderDrawLineF(renderer, r[0], r[1], r[2], r[3]);
         }
 
         // Update the screen with rendering actions
