@@ -18,7 +18,7 @@ constexpr static const auto screen = Screen();
 template <typename Scalar, size_t NumSegments>
 static linalg::Matrix<Scalar, NumSegments + 2, 3> make_circle_points(float radius)
 {
-    static_assert(NumSegments > 2);
+    static_assert(NumSegments >= 3);
     constexpr float seg_size = (2 * M_PI / NumSegments);
 
     linalg::Matrix<Scalar, NumSegments + 2, 3> points;
@@ -60,7 +60,7 @@ static linalg::Matrix<int, 5, 2> square {{
 }};
 // clang-format on
 
-static auto circle = make_circle_points<float, 5>(20);
+static auto circle = make_circle_points<float, 7>(20);
 
 static float turn      = 0;
 static bool  quit_game = false;
@@ -123,36 +123,31 @@ void handle_input()
 
 #include <vector>
 
-/*
-template <size_t NumSegs>
-auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))>
+
+template <size_t Xs, size_t Ys, size_t NumSegs>
+auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
 {
-    constexpr int xs = 11;
-    constexpr int ys = 11;
+    constexpr int NumRows = Xs * Ys;
 
-    constexpr int num_rows = xs * ys;
-
-    linalg::Matrixf<num_rows, 2> points;
+    linalg::Matrixf<NumRows, 2> points;
 
     int row = 0;
 
-    for (int i = 0; i < xs; ++i)
+    for (int i = 0; i < Xs; ++i)
     {
-        for (int k = 0; k < ys; ++k)
+        for (int k = 0; k < Ys; ++k)
         {
             points[row][0] = float(k);
             points[row][1] = float(i);
-            // points[row][2] = float(1);
             ++row;
         }
     }
 
     points *= 50;
-    std::cout << points;
 
-    std::vector<decltype(make_circle_points<float, NumSegs>(5) * rtransf(0, 0, 0))> circles;
+    std::vector<linalg::Matrixf<NumSegs + 2, 2>> circles;
 
-    for (int i = 0; i < num_rows; ++i)
+    for (int i = 0; i < NumRows; ++i)
     {
         float x = points[i][0];
         float y = points[i][1];
@@ -163,10 +158,26 @@ auto make_grid() -> std::vector<decltype(make_circle_points<float, NumSegs>(5) *
         circles.push_back(transc);
     }
 
-
     return circles;
 }
-*/
+
+template <size_t Xs, size_t Ys>
+auto make_grid_points() -> std::vector<linalg::Matrixf<8 + 2, 2>>
+{
+    return make_grid_points<Xs, Ys, 8>();
+}
+
+template <size_t S, typename M>
+void copy_to_points(std::array<int, S>& points_array, M& m)
+{
+    static_assert(M::Size <= S);
+
+    for (int i = 0; i < M::Size; ++i)
+    {
+        points_array[i] = (int)m.data[i];
+    }
+}
+
 
 int main()
 {
@@ -210,7 +221,9 @@ int main()
 
     auto& player = circle;
 
-    // auto grid = make_grid<8>();
+    auto grid = make_grid_points<11, 11>();
+
+    std::array<int, 20> points_array;
 
     while (!quit_game)
     {
@@ -227,40 +240,21 @@ int main()
         alpha    = (turn * 20) + (fd * d);
         omega    = omega + (alpha * dt);
         theta    = theta + (omega * dt);
-        // std::cout << alpha << " " << turn << " " << fd << "\n";
 
         // Draw the center player
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
         auto rotated = player * rtransf(float(theta), 320.f, 240.f);
 
-        int new_player[player.NumRows * player.NumCols];
+        copy_to_points(points_array, rotated);
+        SDL_RenderDrawLines(
+            renderer, (SDL_Point*)(&points_array[0]), player.NumRows);
 
-        for (int i = 0; i < player.Size; ++i)
+        for (auto& grid_point : grid)
         {
-            float val     = rotated.data[i];
-            new_player[i] = int(val);
+            copy_to_points(points_array, grid_point);
+            SDL_RenderDrawLines(
+                renderer, (SDL_Point*)(&points_array[0]), grid_point.NumRows);
         }
-
-        SDL_RenderDrawLines(
-            renderer, (SDL_Point*)(&new_player[0]), player.NumRows);
-        // SDL_RenderPresent(renderer);
-
-        SDL_RenderDrawLines(
-            renderer, (SDL_Point*)(&square.data[0]), square.NumRows);
-        // SDL_RenderPresent(renderer);
-
-        // for (auto& grid_point : grid)
-        // {
-        //     int new_point[grid_point.Size];
-        //     for (int i = 0; i < grid_point.Size; ++i)
-        //     {
-        //         float val    = grid_point.data[i];
-        //         new_point[i] = int(val);
-        //     }
-        //     SDL_RenderDrawLines(
-        //         renderer, (SDL_Point*)(&new_point[0]), grid_point.NumRows);
-        //     // SDL_RenderPresent(renderer);
-        // }
 
         // Update the screen with rendering actions
         SDL_RenderPresent(renderer);
