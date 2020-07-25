@@ -6,7 +6,35 @@
 #include <algorithm>
 #include <complex>
 #include <iostream>
+#include <numeric>
 #include <vector>
+
+//////////////////////////////////////////////////////////////////////////////
+// UTIL FUNCTIONS
+
+// It is intented that this function should eventually be replaced with iota_view.
+// This function is really bad from a performance perspective because you have to
+// allocate Nxint amount of memory to perform an iteration.
+template <size_t StartValue, size_t EndValue>
+std::vector<size_t> irange()
+{
+    static_assert(EndValue > StartValue);
+
+    constexpr size_t size = EndValue - StartValue;
+
+    std::vector<size_t> v(size);
+    std::iota(v.begin(), v.end(), StartValue);
+    return v;
+}
+
+// It is intented that this function should eventually be replaced with iota_view.
+template <size_t EndValue>
+std::vector<size_t> irange()
+{
+    return irange<0, EndValue>();
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 #include "screen.h"
 
@@ -121,27 +149,6 @@ void handle_input()
     } // End event loop
 }
 
-#include <vector>
-#include <numeric>
-#include <algorithm>
-
-template <size_t StartValue, size_t EndValue>
-std::vector<int> irange()
-{
-    static_assert(EndValue > StartValue);
-
-    constexpr int size = EndValue - StartValue;
-
-    std::vector<int> v(size);
-    std::iota(v.begin(), v.end(), StartValue);
-    return v;
-}
-
-template <size_t EndValue>
-std::vector<int> irange()
-{
-    return irange<0, EndValue>();
-}
 
 template <size_t Xs, size_t Ys, size_t NumSegs>
 auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
@@ -181,34 +188,71 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
 }
 
 
-template <int NumLines>
-auto make_grid_lines()
+template <typename Span>
+void assign(Span row, std::array<typename Span::value_type, Span::extent> values)
 {
-    linalg::Matrixf<NumLines * 2, 4> grid;
+    static_assert(Span::extent != std::dynamic_extent);
+
+    for (auto i : irange<row.extent>())
+    {
+        row[i] = values[i];
+    }
+}
+
+
+// This version of grid_tmatt preserves the matrix dimension so the resulting
+// matrix can still be transformed (shifted).
+auto grid_tmatt(float alpha, float x, float y) -> linalg::Matrixf<6, 6>
+{
+    // clang-format off
+    return linalg::Matrixf<6, 6> {{
+        cosf(alpha), -sinf(alpha), 0, 0,            0,           0,
+        sinf(alpha),  cosf(alpha), 0, 0,            0,           0,
+        x,            y,           1, 0,            0,           0,
+        0,            0,           0, cosf(alpha), -sinf(alpha), 0,
+        0,            0,           0, sinf(alpha),  cosf(alpha), 0,
+        0,            0,           0, x,            y,           1
+    }};
+    // clang-format on
+}
+
+// This version of grid_tmat does not preserve the matrix dimensions.
+// This is useful for the final transformation as it allows the matrix
+// to be directly drawn by the SDL renderer as each pair of value now
+// represents a point.
+auto grid_tmat(float alpha, float x, float y) -> linalg::Matrixf<6, 4>
+{
+    // clang-format off
+    return linalg::Matrixf<6, 4> {{
+        cosf(alpha), -sinf(alpha), 0,            0,
+        sinf(alpha),  cosf(alpha), 0,            0,
+        x,            y,           0,            0,
+        0,            0,           cosf(alpha), -sinf(alpha),
+        0,            0,           sinf(alpha),  cosf(alpha),
+        0,            0,           x,            y,
+    }};
+    // clang-format on
+}
+
+template <int NumLines>
+auto make_grid_lines(float scale) -> linalg::Matrixf<NumLines * 2, 6>
+{
+    linalg::Matrixf<NumLines * 2, 6> grid;
 
     float length = NumLines;
 
     for (auto i : irange<NumLines>())
     {
-        grid[i][0] = 0;
-        grid[i][1] = i;
-        grid[i][2] = length;
-        grid[i][3] = i;
+        assign(grid[i], {0.f, (float)i, 1.f, length, (float)i, 1.f});
     }
 
     for (auto i : irange<NumLines>())
     {
-        grid[i + NumLines][0] = i;
-        grid[i + NumLines][1] = 0;
-        grid[i + NumLines][2] = i;
-        grid[i + NumLines][3] = length;
+        assign(grid[i + NumLines], {(float)i, 0.f, 1.f, (float)i, length, 1.f});
     }
 
-    grid *= 40;
 
-    std::cout << grid;
-
-    return grid;
+    return grid * grid_tmatt(0, -NumLines / 2.f, -NumLines / 2.f);
 }
 
 
@@ -260,11 +304,13 @@ int main()
 
     auto& player = circle;
 
-    auto grid = make_grid_points<11, 11>();
+    const int grid_rows = 11;
+    const int grid_cols = 11;
+    auto      grid      = make_grid_points<grid_rows, grid_cols>();
 
-    auto grid_lines = make_grid_lines<10>();
-
-    std::array<int, 20> points_array;
+    const float scale      = 40;
+    const int   NumLines   = 11;
+    auto        grid_lines = make_grid_lines<NumLines>(scale);
 
     while (!quit_game)
     {
@@ -295,7 +341,10 @@ int main()
                 renderer, (SDL_FPoint*)(&grid_point.data[0]), grid_point.NumRows);
         }
 
-        for (auto r : iter(grid_lines))
+        auto rotated_grid = grid_lines * grid_tmat(theta, +NumLines / 2.f, +NumLines / 2.f);
+        rotated_grid *= scale;
+
+        for (auto r : iter(rotated_grid))
         {
             SDL_RenderDrawLineF(renderer, r[0], r[1], r[2], r[3]);
         }
