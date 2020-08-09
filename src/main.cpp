@@ -15,10 +15,11 @@
 #include <numeric>
 #include <vector>
 
-const int SCREEN_WIDTH  = 640;
-const int SCREEN_HEIGHT = 400;
+static constexpr int SCREEN_WIDTH  = 640;
+static constexpr int SCREEN_HEIGHT = 400;
 
-static auto  circle    = make_circle<float, 7>(40);
+static auto circle = make_circle<float, 7>(40);
+
 static float turn      = 0;
 static bool  quit_game = false;
 
@@ -82,7 +83,7 @@ void handle_input()
 //////////////////////////////////////////////////////////////////////////////
 
 template <size_t Xs, size_t Ys, size_t NumSegs>
-auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
+auto make_grid_points(float scale) -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
 {
     constexpr int NumRows = Xs * Ys;
 
@@ -100,7 +101,7 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
         }
     }
 
-    points *= 50;
+    points *= scale;
 
     std::vector<linalg::Matrixf<NumSegs + 2, 2>> circles;
 
@@ -118,37 +119,51 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
     return circles;
 }
 
+template <size_t Xs, size_t Ys>
+auto make_grid_points(float scale) -> std::vector<linalg::Matrixf<8 + 2, 2>>
+{
+    return make_grid_points<Xs, Ys, 8>(scale);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 template <int NumLines>
-auto make_grid_lines(float scale) -> linalg::Matrixf<NumLines * 2, 6>
+auto make_grid_lines(float scale) -> linalg::Matrixf<(NumLines + 1) * 2, 6>
 {
-    linalg::Matrixf<NumLines * 2, 6> grid;
+    static_assert((NumLines % 2) == 0);
 
-    float length = NumLines;
+    linalg::Matrixf<(NumLines + 1) * 2, 6> grid;
 
-    for (auto i : irange<NumLines>())
+    const float length = NumLines;
+
+    // Vertical lines
+    for (auto i : irange<NumLines + 1>())
     {
-        span_deepcopy(grid[i], {0.f, (float)i, 1.f, length, (float)i, 1.f});
+        float fi = (float)i;
+        span_deepcopy(grid[i], {0.f, fi, 1.f, length, fi, 1.f});
     }
 
-    for (auto i : irange<NumLines>())
+    // Horizontal lines
+    for (auto i : irange<NumLines + 1>())
     {
-        span_deepcopy(grid[i + NumLines], {(float)i, 0.f, 1.f, (float)i, length, 1.f});
+        float fi = (float)i;
+        span_deepcopy(grid[i + NumLines + 1], {fi, 0.f, 1.f, fi, length, 1.f});
     }
 
-
+    // Here we are Euler coordinates. Center the grid about (0,0).
     return grid * grid_tmatt(0, -NumLines / 2.f, -NumLines / 2.f);
 }
 
-
-template <size_t Xs, size_t Ys>
-auto make_grid_points() -> std::vector<linalg::Matrixf<8 + 2, 2>>
+//////////////////////////////////////////////////////////////////////////////
+auto to_screen_y(float y) -> float
 {
-    return make_grid_points<Xs, Ys, 8>();
+    return SCREEN_HEIGHT - y;
 }
 
-//////////////////////////////////////////////////////////////////////////////
+auto to_screen_y(int y) -> int
+{
+    return SCREEN_HEIGHT - y;
+}
 
 int main()
 {
@@ -192,12 +207,8 @@ int main()
 
     auto& player = circle;
 
-    const int grid_rows = 11;
-    const int grid_cols = 11;
-    auto      grid      = make_grid_points<grid_rows, grid_cols>();
-
     const float scale      = 40;
-    const int   NumLines   = 11;
+    const int   NumLines   = 8;
     auto        grid_lines = make_grid_lines<NumLines>(scale);
 
     while (!quit_game)
@@ -216,25 +227,33 @@ int main()
         omega    = omega + (alpha * dt);
         theta    = theta + (omega * dt);
 
-        // Draw the center player
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        auto rotated = player * rtransf(float(theta), 320.f, 240.f);
-
-        SDL_RenderDrawLinesF(
-            renderer, (SDL_FPoint*)(&rotated.data[0]), player.NumRows);
-
-        for (auto& grid_point : grid)
+        // Draw the grid.
         {
-            SDL_RenderDrawLinesF(
-                renderer, (SDL_FPoint*)(&grid_point.data[0]), grid_point.NumRows);
+            SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0x00);
+            float offset_x     = SCREEN_WIDTH / 2 / scale;
+            float offset_y     = SCREEN_HEIGHT / 2 / scale;
+            auto  rotated_grid = grid_lines * grid_tmat(theta, offset_x, offset_y) * scale;
+
+            for (auto r : iter(rotated_grid))
+            {
+                SDL_RenderDrawLineF(renderer,
+                                    r[0],
+                                    to_screen_y(r[1]),
+                                    r[2],
+                                    to_screen_y(r[3]));
+            }
         }
 
-        auto rotated_grid = grid_lines * grid_tmat(theta, +NumLines / 2.f, +NumLines / 2.f);
-        rotated_grid *= scale;
-
-        for (auto r : iter(rotated_grid))
+        // Draw the basis point.
         {
-            SDL_RenderDrawLineF(renderer, r[0], r[1], r[2], r[3]);
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+            float offset_x = SCREEN_WIDTH / 2;
+            float offset_y = SCREEN_HEIGHT / 2;
+            auto  rotated  = player * rtransf(float(theta), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+
+            SDL_RenderDrawLinesF(renderer,
+                                 (SDL_FPoint*)(&rotated.data[0]),
+                                 player.NumRows);
         }
 
         // Update the screen with rendering actions

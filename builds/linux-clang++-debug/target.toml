@@ -32,8 +32,8 @@ defines = []
     outputName = "ShapeAttack"
     srcDirs = ["src"]
     includePaths = [
-        "include", 
         "/usr/include/SDL2",
+        "include",
         "lib/LinAlg/include"
     ]
     libraries = ["SDL2"]
@@ -45,8 +45,8 @@ defines = []
     outputName = "Tests"
     srcDirs = ["test"]
     includePaths = [
-        "/usr/include/SDL2", 
-        "include", 
+        "/usr/include/SDL2",
+        "include",
         "lib/Meliorate/include",
         "lib/LinAlg/include"
     ]
