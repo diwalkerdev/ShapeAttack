@@ -3,99 +3,29 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "linalg/matrix.h"
+#include "linalg/util.h"
+#include "misc.hpp"
+#include "shapes.hpp"
+#include "transformations.hpp"
+
 #include <algorithm>
 #include <complex>
 #include <iostream>
 #include <numeric>
 #include <vector>
 
-//////////////////////////////////////////////////////////////////////////////
-// UTIL FUNCTIONS
+const int SCREEN_WIDTH  = 640;
+const int SCREEN_HEIGHT = 400;
 
-// It is intented that this function should eventually be replaced with iota_view.
-// This function is really bad from a performance perspective because you have to
-// allocate Nxint amount of memory to perform an iteration.
-template <size_t StartValue, size_t EndValue>
-std::vector<size_t> irange()
-{
-    static_assert(EndValue > StartValue);
-
-    constexpr size_t size = EndValue - StartValue;
-
-    std::vector<size_t> v(size);
-    std::iota(v.begin(), v.end(), StartValue);
-    return v;
-}
-
-// It is intented that this function should eventually be replaced with iota_view.
-template <size_t EndValue>
-std::vector<size_t> irange()
-{
-    return irange<0, EndValue>();
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-#include "screen.h"
-
-#include "linalg/matrix.h"
-#include "linalg/util.h"
-
-constexpr static const auto screen = Screen();
-
-template <typename Scalar, size_t NumSegments>
-static linalg::Matrix<Scalar, NumSegments + 2, 3> make_circle_points(float radius)
-{
-    static_assert(NumSegments >= 3);
-    constexpr float seg_size = (2 * M_PI / NumSegments);
-
-    linalg::Matrix<Scalar, NumSegments + 2, 3> points;
-
-    float theta = 0;
-
-    for (int i = 0; i < NumSegments + 1; ++i)
-    {
-        points[i][0] = cos(theta) * radius;
-        points[i][1] = sin(theta) * radius;
-        points[i][2] = 1;
-        theta += seg_size;
-    }
-
-    int k = NumSegments + 1;
-
-    points[k][0] = 0;
-    points[k][1] = 0;
-    points[k][2] = 1;
-
-    return points;
-}
-
-// clang-format off
-static linalg::Matrix<float, 5, 3> points {{
-      0,  20, 1, 
-     20, -20, 1, 
-    -20, -20, 1, 
-      0,  20, 1, 
-      0,   0, 1
-}};
-
-static linalg::Matrix<int, 5, 2> square {{
-     0,  0, 
-     0, 40, 
-    40, 40, 
-    40,  0, 
-     0,  0
-}};
-// clang-format on
-
-static auto circle = make_circle_points<float, 7>(20);
-
+static auto  circle    = make_circle<float, 7>(40);
 static float turn      = 0;
 static bool  quit_game = false;
 
+//////////////////////////////////////////////////////////////////////////////
+
 void handle_input()
 {
-
     SDL_Event event;
 
     while (SDL_PollEvent(&event) != 0)
@@ -149,6 +79,7 @@ void handle_input()
     } // End event loop
 }
 
+//////////////////////////////////////////////////////////////////////////////
 
 template <size_t Xs, size_t Ys, size_t NumSegs>
 auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
@@ -187,52 +118,7 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
     return circles;
 }
 
-
-template <typename Span>
-void assign(Span row, std::array<typename Span::value_type, Span::extent> values)
-{
-    static_assert(Span::extent != std::dynamic_extent);
-
-    for (auto i : irange<row.extent>())
-    {
-        row[i] = values[i];
-    }
-}
-
-
-// This version of grid_tmatt preserves the matrix dimension so the resulting
-// matrix can still be transformed (shifted).
-auto grid_tmatt(float alpha, float x, float y) -> linalg::Matrixf<6, 6>
-{
-    // clang-format off
-    return linalg::Matrixf<6, 6> {{
-        cosf(alpha), -sinf(alpha), 0, 0,            0,           0,
-        sinf(alpha),  cosf(alpha), 0, 0,            0,           0,
-        x,            y,           1, 0,            0,           0,
-        0,            0,           0, cosf(alpha), -sinf(alpha), 0,
-        0,            0,           0, sinf(alpha),  cosf(alpha), 0,
-        0,            0,           0, x,            y,           1
-    }};
-    // clang-format on
-}
-
-// This version of grid_tmat does not preserve the matrix dimensions.
-// This is useful for the final transformation as it allows the matrix
-// to be directly drawn by the SDL renderer as each pair of value now
-// represents a point.
-auto grid_tmat(float alpha, float x, float y) -> linalg::Matrixf<6, 4>
-{
-    // clang-format off
-    return linalg::Matrixf<6, 4> {{
-        cosf(alpha), -sinf(alpha), 0,            0,
-        sinf(alpha),  cosf(alpha), 0,            0,
-        x,            y,           0,            0,
-        0,            0,           cosf(alpha), -sinf(alpha),
-        0,            0,           sinf(alpha),  cosf(alpha),
-        0,            0,           x,            y,
-    }};
-    // clang-format on
-}
+//////////////////////////////////////////////////////////////////////////////
 
 template <int NumLines>
 auto make_grid_lines(float scale) -> linalg::Matrixf<NumLines * 2, 6>
@@ -243,12 +129,12 @@ auto make_grid_lines(float scale) -> linalg::Matrixf<NumLines * 2, 6>
 
     for (auto i : irange<NumLines>())
     {
-        assign(grid[i], {0.f, (float)i, 1.f, length, (float)i, 1.f});
+        span_deepcopy(grid[i], {0.f, (float)i, 1.f, length, (float)i, 1.f});
     }
 
     for (auto i : irange<NumLines>())
     {
-        assign(grid[i + NumLines], {(float)i, 0.f, 1.f, (float)i, length, 1.f});
+        span_deepcopy(grid[i + NumLines], {(float)i, 0.f, 1.f, (float)i, length, 1.f});
     }
 
 
@@ -261,6 +147,8 @@ auto make_grid_points() -> std::vector<linalg::Matrixf<8 + 2, 2>>
 {
     return make_grid_points<Xs, Ys, 8>();
 }
+
+//////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -276,8 +164,8 @@ int main()
     auto* window = SDL_CreateWindow("SDL Tutorial",
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
-                                    screen.width,
-                                    screen.height,
+                                    SCREEN_WIDTH,
+                                    SCREEN_HEIGHT,
                                     SDL_WINDOW_SHOWN);
 
     if (window == nullptr)
@@ -296,7 +184,7 @@ int main()
     }
 
     // Init game objects
-    SDL_Rect background_rect {0, 0, screen.width, screen.height};
+    SDL_Rect background_rect {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
     float alpha = 0;
     float omega = 0;
