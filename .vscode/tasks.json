@@ -1,39 +1,42 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-    "version": "0.0.1",
-    "command": "./makeless",
-    "isShellCommand": true,
-    "args": [],
-    "showOutput": "always",
+    "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "build",
-            "args": ["build"],
-            "suppressTaskName": true
+            "label": "build",
+            "command": "/home/dwalker0044/.local/bin/aim",
+            "type": "shell",
+            "group": "build",
+            "args": [
+                "build",
+                "shapeAttack",
+                "--target=builds/linux-clang++-debug"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
         },
         {
-            "taskName": "build debug",
-            "args": ["build", "--debug"],
-            "suppressTaskName": true
-        },
-        {
-            "taskName": "run",
-            "args": ["run"],
-            "suppressTaskName": true
-        },
-        {
-            "taskName": "run debug",
-            "args": ["run", "--debug"],
-            "suppressTaskName": true
-        },
-        {
-            "taskName": "format",
-            "args": []
-        },
-        {
-            "taskName": "check",
-            "args": []
+            "label": "run",
+            "command": "./builds/linux-clang++-debug/shapeAttack/ShapeAttack.exe",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
         }
     ]
 }
