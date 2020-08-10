@@ -1,7 +1,7 @@
 #ifndef SHAPE_ATTACK_SHAPES_HPP
 #define SHAPE_ATTACK_SHAPES_HPP
 
-#include <linalg/matrix.h>
+#include <linalg/matrix.hpp>
 
 //////////////////////////////////////////////////////////////////////////////
 

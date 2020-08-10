@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "linalg/matrix.h"
+#include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
-#include "linalg/util.h"
+#include "linalg/trans.hpp"
 #include "shapes.hpp"
 #include "transformations.hpp"
 
