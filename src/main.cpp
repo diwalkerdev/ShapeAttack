@@ -4,8 +4,8 @@
 #include <time.h>
 
 #include "linalg/matrix.h"
+#include "linalg/misc.hpp"
 #include "linalg/util.h"
-#include "misc.hpp"
 #include "shapes.hpp"
 #include "transformations.hpp"
 
@@ -18,7 +18,7 @@
 static constexpr int SCREEN_WIDTH  = 640;
 static constexpr int SCREEN_HEIGHT = 400;
 
-static auto circle = make_circle<float, 7>(40);
+static auto circle = make_circle<12>(20);
 
 static float turn      = 0;
 static bool  quit_game = false;
@@ -83,7 +83,7 @@ void handle_input()
 //////////////////////////////////////////////////////////////////////////////
 
 template <size_t Xs, size_t Ys, size_t NumSegs>
-auto make_grid_points(float scale) -> std::vector<linalg::Matrixf<NumSegs + 2, 2>>
+auto make_grid_points(float scale) -> std::vector<linalg::Matrixf<NumSegs + 2, 3>>
 {
     constexpr int NumRows = Xs * Ys;
 
@@ -103,7 +103,7 @@ auto make_grid_points(float scale) -> std::vector<linalg::Matrixf<NumSegs + 2, 2
 
     points *= scale;
 
-    std::vector<linalg::Matrixf<NumSegs + 2, 2>> circles;
+    std::vector<linalg::Matrixf<NumSegs + 2, 3>> circles;
 
     for (int i = 0; i < NumRows; ++i)
     {
@@ -167,6 +167,17 @@ auto to_screen_y(int y) -> int
 
 int main()
 {
+    // clang-format off
+    linalg::Matrixf<3, 3> A {{
+        1.f, 0.f, 7.f,
+        0.f, 1.f, 1.f,
+        0.f, 1.f, 2.f,
+    }};
+    // clang-format on
+
+    auto new_mat = linalg::cols(A, {0, 2, 2, 1});
+    std::cout << new_mat;
+
     srand(time(nullptr));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -205,11 +216,11 @@ int main()
     float omega = 0;
     float theta = 0;
 
-    auto& player = circle;
-
     const float scale      = 40;
     const int   NumLines   = 8;
     auto        grid_lines = make_grid_lines<NumLines>(scale);
+
+    auto player = circle * rtransf(0, scale, scale);
 
     while (!quit_game)
     {
@@ -232,28 +243,37 @@ int main()
             SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0x00);
             float offset_x     = SCREEN_WIDTH / 2 / scale;
             float offset_y     = SCREEN_HEIGHT / 2 / scale;
-            auto  rotated_grid = grid_lines * grid_tmat(theta, offset_x, offset_y) * scale;
+            auto  rotated_grid = grid_lines * grid_tmatt(theta, offset_x, offset_y) * scale;
 
             for (auto r : iter(rotated_grid))
             {
                 SDL_RenderDrawLineF(renderer,
                                     r[0],
                                     to_screen_y(r[1]),
-                                    r[2],
-                                    to_screen_y(r[3]));
+                                    r[3],
+                                    to_screen_y(r[4]));
             }
         }
 
         // Draw the basis point.
         {
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-            float offset_x = SCREEN_WIDTH / 2;
-            float offset_y = SCREEN_HEIGHT / 2;
-            auto  rotated  = player * rtransf(float(theta), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+            float offset_x = (SCREEN_WIDTH / 2);
+            float offset_y = (SCREEN_HEIGHT / 2);
 
-            SDL_RenderDrawLinesF(renderer,
-                                 (SDL_FPoint*)(&rotated.data[0]),
-                                 player.NumRows);
+            auto rotated = player * rtransf(float(theta), offset_x, offset_y);
+
+            for (auto r : iter(rotated))
+            {
+                SDL_RenderDrawLineF(renderer,
+                                    r[0],
+                                    to_screen_y(r[1]),
+                                    r[3],
+                                    to_screen_y(r[4]));
+            }
+            // SDL_RenderDrawLinesF(renderer,
+            //                      (SDL_FPoint*)(&rotated.data[0]),
+            //                      player.NumRows);
         }
 
         // Update the screen with rendering actions

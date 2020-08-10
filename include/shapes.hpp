@@ -3,13 +3,15 @@
 
 #include <linalg/matrix.h>
 
-template <typename Scalar, size_t NumSegments>
-linalg::Matrix<Scalar, NumSegments + 2, 3> make_circle_points(float radius)
+//////////////////////////////////////////////////////////////////////////////
+
+template <size_t NumSegments>
+auto make_circle_points(float radius) -> linalg::Matrixf<NumSegments + 2, 3>
 {
     static_assert(NumSegments >= 3);
     constexpr float seg_size = (2 * M_PI / NumSegments);
 
-    linalg::Matrix<Scalar, NumSegments + 2, 3> points;
+    linalg::Matrixf<NumSegments + 2, 3> points;
 
     float theta = 0;
 
@@ -28,24 +30,28 @@ linalg::Matrix<Scalar, NumSegments + 2, 3> make_circle_points(float radius)
     return points;
 }
 
+//////////////////////////////////////////////////////////////////////////////
 
-template <typename T, int NUM_POINTS>
-auto make_circle(T circumference)
+template <int NumSegments>
+auto make_circle(float circumference) -> linalg::Matrixf<NumSegments + 2, 3>
 {
-    return make_circle_points<T, NUM_POINTS>(circumference / 2);
+    return make_circle_points<NumSegments>(circumference / 2);
 }
 
-template <typename T>
-auto make_square(T width)
+//////////////////////////////////////////////////////////////////////////////
+
+auto make_square(float width) -> linalg::Matrixf<4 + 2, 3>
 {
-    return make_circle_points<T, 4>(width / 2);
+    return make_circle_points<4>(width / 2);
 }
 
-template <typename T>
-auto make_triangle(T length)
+//////////////////////////////////////////////////////////////////////////////
+
+auto make_triangle(float length) -> linalg::Matrixf<3 + 2, 3>
 {
-    return make_circle_points<T, 3>(length / 2);
+    return make_circle_points<3>(length / 2);
 }
 
+//////////////////////////////////////////////////////////////////////////////
 
 #endif // SHAPE_ATTACK_SHAPES_HPP
