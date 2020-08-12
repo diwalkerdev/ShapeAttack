@@ -167,13 +167,10 @@ auto to_screen_y(int y) -> int
 
 int main()
 {
-    // clang-format off
-    linalg::Matrixf<3, 3> A {{
-        1.f, 0.f, 7.f,
-        0.f, 1.f, 1.f,
-        0.f, 1.f, 2.f,
-    }};
-    // clang-format on
+    linalg::Matrixf<3, 3> A {{{1.f, 0.f, 7.f},
+                              {0.f, 1.f, 1.f},
+                              {0.f, 1.f, 2.f}}};
+    std::cout << A;
 
     auto new_mat = linalg::cols(A, {0, 2, 2, 1});
     std::cout << new_mat;
@@ -222,6 +219,9 @@ int main()
 
     auto player = circle * rtransf(0, scale, scale);
 
+    linalg::Matrixf<2, 1> X {{{0}, {0}}};
+    linalg::Matrixf<2, 1> Xdot {{{0}, {0}}};
+
     while (!quit_game)
     {
         handle_input();
@@ -230,13 +230,24 @@ int main()
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderFillRect(renderer, &background_rect);
 
+        float u  = turn;
         float dt = 1 / 30.f;
-        float A  = 0.2;
-        float fd = A * pow(omega, 2);
-        float d  = omega > 0 ? -1 : 1;
-        alpha    = (turn * 20) + (fd * d);
-        omega    = omega + (alpha * dt);
-        theta    = theta + (omega * dt);
+        float m  = 1.f;
+        float k  = 0.2f;
+
+        linalg::Matrixf<2, 2> A {{{0, 1},
+                                  {0, -k / m}}};
+        linalg::Matrixf<2, 2> I {{{1, 0},
+                                  {0, 1}}};
+        linalg::Matrixf<2, 1> B {{{0}, {1}}};
+
+        Xdot = (X + (dt * A * X)) + ((dt * B) * u);
+
+        linalg::Matrixf<1, 2> C {{{1, 0}}};
+        linalg::Matrixf<1, 1> y = C * X;
+
+        X = Xdot;
+        theta = y[0][0];
 
         // Draw the grid.
         {
