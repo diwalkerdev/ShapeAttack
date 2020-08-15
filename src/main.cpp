@@ -230,23 +230,29 @@ int main()
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderFillRect(renderer, &background_rect);
 
-        float u  = turn;
+        float u  = turn * 5;
         float dt = 1 / 30.f;
         float m  = 1.f;
         float k  = 0.2f;
+        float v  = X[1][0];
 
-        linalg::Matrixf<2, 2> A {{{0, 1},
-                                  {0, -k / m}}};
+        // 0.2 tanh(10x)+x^3/10;
+        linalg::Matrixf<2, 3> A {{{0, 1, 0},
+                                  {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v) }}};
         linalg::Matrixf<2, 2> I {{{1, 0},
                                   {0, 1}}};
         linalg::Matrixf<2, 1> B {{{0}, {1}}};
 
-        Xdot = (X + (dt * A * X)) + ((dt * B) * u);
+        linalg::Matrixf<3, 1> Xn {{{X[0][0]},
+                                   {X[1][0]},
+                                   {1}}};
+
+        Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
         linalg::Matrixf<1, 2> C {{{1, 0}}};
         linalg::Matrixf<1, 1> y = C * X;
 
-        X = Xdot;
+        X     = Xdot;
         theta = y[0][0];
 
         // Draw the grid.
