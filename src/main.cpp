@@ -8,6 +8,7 @@
 #include "linalg/trans.hpp"
 #include "shapes.hpp"
 #include "transformations.hpp"
+#include "typedefs.h"
 
 #include <algorithm>
 #include <complex>
@@ -22,6 +23,48 @@ static auto circle = make_circle<12>(20);
 
 static float turn      = 0;
 static bool  quit_game = false;
+
+struct MouseHandler {
+    enum struct MouseState { default_state,
+                             dragging } state;
+    uint32 drag_x;
+    uint32 drag_y;
+
+    uint32 dx;
+    uint32 dy;
+
+    void handle_events()
+    {
+        int    mouse_x, mouse_y;
+        uint32 mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
+
+        bool mouse_left_pressed = mouse_state & (SDL_BUTTON(SDL_BUTTON_LEFT));
+
+        switch (state)
+        {
+        case MouseState::default_state: {
+            if (mouse_left_pressed)
+            {
+                state  = MouseState::dragging;
+                drag_x = mouse_x;
+                drag_y = mouse_y;
+            }
+        }
+        case MouseState::dragging: {
+            if (!mouse_left_pressed)
+            {
+                state = MouseState::default_state;
+            }
+            else
+            {
+                dx = mouse_x - drag_x;
+                dy = mouse_y - drag_y;
+            }
+        }
+        }
+        printf("%d  %d  %d  %d  %d\n", mouse_left_pressed, mouse_x, mouse_y, dx, dy);
+    }
+} mouse_state;
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -78,6 +121,14 @@ void handle_input()
             }
         }
     } // End event loop
+
+    // int mouse_x, mouse_y;
+
+    // Uint32 mouse_state        = SDL_GetMouseState(&mouse_x, &mouse_y);
+    // bool   mouse_left_pressed = mouse_state & (SDL_BUTTON(SDL_BUTTON_LEFT));
+
+    // printf("%d  %d  %d\n", mouse_left_pressed, mouse_x, mouse_y);
+    mouse_state.handle_events();
 }
 
 //////////////////////////////////////////////////////////////////////////////
