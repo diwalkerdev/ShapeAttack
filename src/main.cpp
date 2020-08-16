@@ -167,14 +167,6 @@ auto to_screen_y(int y) -> int
 
 int main()
 {
-    linalg::Matrixf<3, 3> A {{{1.f, 0.f, 7.f},
-                              {0.f, 1.f, 1.f},
-                              {0.f, 1.f, 2.f}}};
-    std::cout << A;
-
-    auto new_mat = linalg::cols(A, {0, 2, 2, 1});
-    std::cout << new_mat;
-
     srand(time(nullptr));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -219,8 +211,8 @@ int main()
 
     auto player = circle * rtransf(0, scale, scale);
 
-    linalg::Matrixf<2, 1> X {{{0}, {0}}};
-    linalg::Matrixf<2, 1> Xdot {{{0}, {0}}};
+    linalg::Vectorf<2> X {{{0, 0}}};
+    linalg::Vectorf<2> Xdot {{{0, 0}}};
 
     while (!quit_game)
     {
@@ -234,18 +226,16 @@ int main()
         float dt = 1 / 30.f;
         float m  = 1.f;
         float k  = 0.2f;
-        float v  = X[1][0];
+        float v  = X[1];
 
         // 0.2 tanh(10x)+x^3/10;
         linalg::Matrixf<2, 3> A {{{0, 1, 0},
-                                  {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v) }}};
+                                  {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
         linalg::Matrixf<2, 2> I {{{1, 0},
                                   {0, 1}}};
-        linalg::Matrixf<2, 1> B {{{0}, {1}}};
+        linalg::Matrixf<2, 1> B {{{0, 1}}};
 
-        linalg::Matrixf<3, 1> Xn {{{X[0][0]},
-                                   {X[1][0]},
-                                   {1}}};
+        linalg::Matrixf<3, 1> Xn {{{X[0], X[1], 1}}};
 
         Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
@@ -253,7 +243,7 @@ int main()
         linalg::Matrixf<1, 1> y = C * X;
 
         X     = Xdot;
-        theta = y[0][0];
+        theta = y[0];
 
         // Draw the grid.
         {
@@ -278,19 +268,12 @@ int main()
             float offset_x = (SCREEN_WIDTH / 2);
             float offset_y = (SCREEN_HEIGHT / 2);
 
-            auto rotated = player * rtransf(float(theta), offset_x, offset_y);
+            // TODO: Some needless copying going on here.
+            // I should write a draw function that loops over the Matrix correctly.
+            auto rotated  = player * rtransf(float(-theta), offset_x, offset_y);
+            auto selected = linalg::cols(rotated, {0, 1});
 
-            for (auto r : iter(rotated))
-            {
-                SDL_RenderDrawLineF(renderer,
-                                    r[0],
-                                    to_screen_y(r[1]),
-                                    r[3],
-                                    to_screen_y(r[4]));
-            }
-            // SDL_RenderDrawLinesF(renderer,
-            //                      (SDL_FPoint*)(&rotated.data[0]),
-            //                      player.NumRows);
+            SDL_RenderDrawLinesF(renderer, (SDL_FPoint*)&selected.data[0], selected.NumRows);
         }
 
         // Update the screen with rendering actions
