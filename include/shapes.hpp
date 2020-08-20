@@ -32,6 +32,24 @@ auto make_circle_points(float radius) -> linalg::Matrixf<NumSegments + 2, 3>
 
 //////////////////////////////////////////////////////////////////////////////
 
+template <size_t NumSegments>
+struct Circle {
+    float radius;
+    float offset_x;
+    float offset_y;
+
+    linalg::Matrixf<NumSegments + 2, 3> data;
+    Circle(float radius, float offset_x = 0, float offset_y = 0)
+        : radius(radius)
+        , offset_x(offset_x)
+        , offset_y(offset_y)
+        , data(make_circle_points<NumSegments>(radius))
+    {
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////////
+
 template <int NumSegments>
 auto make_circle(float circumference) -> linalg::Matrixf<NumSegments + 2, 3>
 {
