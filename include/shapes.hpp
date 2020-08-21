@@ -37,12 +37,14 @@ struct Circle {
     float radius;
     float offset_x;
     float offset_y;
+    float theta;
 
     linalg::Matrixf<NumSegments + 2, 3> data;
     Circle(float radius, float offset_x = 0, float offset_y = 0)
         : radius(radius)
         , offset_x(offset_x)
         , offset_y(offset_y)
+        , theta(0)
         , data(make_circle_points<NumSegments>(radius))
     {
     }

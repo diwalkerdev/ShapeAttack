@@ -19,8 +19,6 @@
 static constexpr int SCREEN_WIDTH  = 640;
 static constexpr int SCREEN_HEIGHT = 400;
 
-static auto circle = make_circle<12>(20);
-
 static float turn      = 0;
 static bool  quit_game = false;
 
@@ -28,7 +26,6 @@ enum struct MouseState { default_state,
                          dragging };
 
 struct MouseHandler {
-
     MouseState                    state;
     std::function<void(int, int)> on_mouse_click;
     std::function<void(int, int)> on_mouse_drag;
@@ -137,12 +134,6 @@ void handle_input(MouseHandler& mouse_state)
         }
     } // End event loop
 
-    // int mouse_x, mouse_y;
-
-    // Uint32 mouse_state        = SDL_GetMouseState(&mouse_x, &mouse_y);
-    // bool   mouse_left_pressed = mouse_state & (SDL_BUTTON(SDL_BUTTON_LEFT));
-
-    // printf("%d  %d  %d\n", mouse_left_pressed, mouse_x, mouse_y);
     mouse_state.handle_events();
 }
 
@@ -244,6 +235,8 @@ void draw(SDL_Renderer* renderer, M& data)
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+static constexpr float scale = 40;
 
 int main()
 {
@@ -285,15 +278,12 @@ int main()
     float omega = 0;
     float theta = 0;
 
-    const float scale      = 40;
-    const int   NumLines   = 8;
-    auto        grid_lines = make_grid_lines<NumLines>(scale);
 
-    constexpr float offset_x = (SCREEN_WIDTH / 2);
-    constexpr float offset_y = (SCREEN_HEIGHT / 2);
+    const int NumLines   = 8;
+    auto      grid_lines = make_grid_lines<NumLines>(scale);
 
-    Circle<12> basis_x(10, offset_x + scale, offset_y);
-    Circle<12> basis_y(10, offset_x, offset_y + scale);
+    Circle<12> basis_x(0.25, 1, 0);
+    Circle<12> basis_y(0.25, 0, 1);
 
     linalg::Matrixf<14, 2> selected_x;
     linalg::Matrixf<14, 2> selected_y;
@@ -304,41 +294,51 @@ int main()
     bool clicked_x {};
     bool clicked_y {};
 
+    float offset_x  = (SCREEN_WIDTH / 2) / scale;
+    float offset_y  = (SCREEN_HEIGHT / 2) / scale;
+    auto  rotated_x = basis_x.data * rtransf(0, basis_x.offset_x, basis_x.offset_y) * rtransf(basis_x.theta, offset_x, offset_y) * scale;
+    auto  rotated_y = basis_y.data * rtransf(0, basis_y.offset_x, basis_y.offset_y) * rtransf(basis_y.theta, offset_x, offset_y) * scale;
+
     MouseHandler mouse_handler;
     mouse_handler.state          = MouseState::default_state;
-    mouse_handler.on_mouse_click = [&basis_x, &basis_y, &clicked_x, &clicked_y](int mouse_x, int mouse_y) {
+    mouse_handler.on_mouse_click = [&rotated_x, &rotated_y, &clicked_x, &clicked_y](int mouse_x, int mouse_y) {
         float center_x;
         float center_y;
-        center_x = basis_x.offset_x;
-        center_y = to_screen_y(basis_x.offset_y);
-        // printf("%f  %f\n", center_x, center_y);
+        float radius;
 
-        if ((std::abs(center_x - mouse_x) < basis_x.radius) && ((std::abs(center_y - mouse_y) < basis_y.radius)))
+        center_x = rotated_x[0][0];
+        center_y = to_screen_y(rotated_x[0][1]);
+        radius   = std::sqrt(std::pow(center_x - rotated_x[1][0], 2)
+                           + std::pow(center_y - to_screen_y(rotated_x[1][1]), 2));
+
+        if ((std::abs(center_x - mouse_x) < radius) && (std::abs(center_y - mouse_y) < radius))
         {
             clicked_x = true;
-            // printf("Clicked x basis vector\n");
+            printf("Clicked x basis vector\n");
         }
 
-        center_x = basis_y.offset_x;
-        center_y = to_screen_y(basis_y.offset_y);
+        center_x = rotated_y[0][0];
+        center_y = to_screen_y(rotated_y[0][1]);
+        radius   = std::sqrt(std::pow(center_x - rotated_y[1][0], 2)
+                           + std::pow(center_y - to_screen_y(rotated_y[1][1]), 2));
 
-        if ((std::abs(center_x - mouse_x) < basis_y.radius) && ((std::abs(center_y - mouse_y) < basis_y.radius)))
+        if ((std::abs(center_x - mouse_x) < radius) && (std::abs(center_y - mouse_y) < radius))
         {
             clicked_y = true;
-            // printf("Clicked y basis vector\n");
+            printf("Clicked y basis vector\n");
         }
     };
 
     mouse_handler.on_mouse_drag = [&basis_x, &basis_y, &clicked_x, &clicked_y](int dx, int dy) {
         if (clicked_x)
         {
-            basis_x.offset_x += dx;
-            basis_x.offset_y -= dy;
+            basis_x.offset_x += dx / scale;
+            basis_x.offset_y -= dy / scale;
         }
         else if (clicked_y)
         {
-            basis_y.offset_x += dx;
-            basis_y.offset_y -= dy;
+            basis_y.offset_x += dx / scale;
+            basis_y.offset_y -= dy / scale;
         }
     };
 
@@ -378,22 +378,25 @@ int main()
         X     = Xdot;
         theta = y[0];
 
-        float x1 = (basis_x.offset_x - (SCREEN_WIDTH / 2)) / scale;
-        float x2 = (basis_y.offset_x - (SCREEN_WIDTH / 2)) / scale;
-        float y1 = (basis_x.offset_y - (SCREEN_HEIGHT / 2)) / scale;
-        float y2 = (basis_y.offset_y - (SCREEN_HEIGHT / 2)) / scale;
+        basis_x.theta = theta;
+        basis_y.theta = theta;
 
-        printf("%f  %f  %f  %f\n", x1, x2, y1, y2);
+        rotated_x = basis_x.data * rtransf(0, basis_x.offset_x, basis_x.offset_y) * rtransf(basis_x.theta, offset_x, offset_y) * scale;
+        rotated_y = basis_y.data * rtransf(0, basis_y.offset_x, basis_y.offset_y) * rtransf(basis_y.theta, offset_x, offset_y) * scale;
+
+        float x1 = basis_x.offset_x;
+        float x2 = basis_y.offset_x;
+        float y1 = basis_x.offset_y;
+        float y2 = basis_y.offset_y;
+
+        // printf("%f  %f  %f  %f\n", x1, x2, y1, y2);
+
         linalg::Matrixf<6, 6> basis {{{x1, x2, 0, 0, 0, 0},
                                       {y1, y2, 0, 0, 0, 0},
                                       {0, 0, 1, 0, 0, 0},
                                       {0, 0, 0, x1, x2, 0},
                                       {0, 0, 0, y1, y2, 0},
                                       {0, 0, 0, 0, 0, 1}}};
-
-        auto rotated_x = basis_x.data * rtransf(float(theta), basis_x.offset_x, basis_x.offset_y);
-        auto rotated_y = basis_y.data * rtransf(float(theta), basis_y.offset_x, basis_y.offset_y);
-
 
         // Draw the grid.
         {
