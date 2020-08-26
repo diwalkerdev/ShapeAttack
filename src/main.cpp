@@ -7,11 +7,11 @@
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
 #include "shapes.hpp"
-#include "transformations.hpp"
 #include "typedefs.h"
 
 #include <algorithm>
 #include <complex>
+#include <functional>
 #include <iostream>
 #include <numeric>
 #include <vector>
@@ -21,6 +21,21 @@ static constexpr int SCREEN_HEIGHT = 400;
 
 static float turn      = 0;
 static bool  quit_game = false;
+
+//////////////////////////////////////////////////////////////////////////////
+
+auto grid_tmatt(float alpha, float x, float y) -> linalg::Matrixf<6, 6>
+{
+
+    return linalg::Matrixf<6, 6>{{{cosf(alpha), -sinf(alpha), 0, 0, 0, 0},
+                                  {sinf(alpha), cosf(alpha), 0, 0, 0, 0},
+                                  {x, y, 1, 0, 0, 0},
+                                  {0, 0, 0, cosf(alpha), -sinf(alpha), 0},
+                                  {0, 0, 0, sinf(alpha), cosf(alpha), 0},
+                                  {0, 0, 0, x, y, 1}}};
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 enum struct MouseState { default_state,
                          dragging };
@@ -225,7 +240,7 @@ auto to_screen_y(int y) -> int
 template <typename M>
 void draw(SDL_Renderer* renderer, M& data)
 {
-    for (auto i : irange<0, M::NumRows - 1>())
+    for (auto i : irange<0, M::rows() - 1>())
     {
         SDL_RenderDrawLineF(renderer,
                             data[i][0],
@@ -272,7 +287,7 @@ int main()
     }
 
     // Init game objects
-    SDL_Rect background_rect {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_Rect background_rect{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
     float alpha = 0;
     float omega = 0;
@@ -288,11 +303,11 @@ int main()
     linalg::Matrixf<14, 2> selected_x;
     linalg::Matrixf<14, 2> selected_y;
 
-    linalg::Vectorf<2> X {{{0, 0}}};
-    linalg::Vectorf<2> Xdot {{{0, 0}}};
+    linalg::Vectorf<2> X{{0, 0}};
+    linalg::Vectorf<2> Xdot{{0, 0}};
 
-    bool clicked_x {};
-    bool clicked_y {};
+    bool clicked_x{};
+    bool clicked_y{};
 
     float offset_x  = (SCREEN_WIDTH / 2) / scale;
     float offset_y  = (SCREEN_HEIGHT / 2) / scale;
@@ -362,17 +377,17 @@ int main()
         float v  = X[1];
 
         // 0.2 tanh(10x)+x^3/10;
-        linalg::Matrixf<2, 3> A {{{0, 1, 0},
-                                  {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
-        linalg::Matrixf<2, 2> I {{{1, 0},
-                                  {0, 1}}};
-        linalg::Matrixf<2, 1> B {{{0, 1}}};
+        linalg::Matrixf<2, 3> A{{{0, 1, 0},
+                                 {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
+        linalg::Matrixf<2, 2> I{{{1, 0},
+                                 {0, 1}}};
+        linalg::Matrixf<2, 1> B{{{0, 1}}};
 
-        linalg::Matrixf<3, 1> Xn {{{X[0], X[1], 1}}};
+        linalg::Matrixf<3, 1> Xn{{{X[0], X[1], 1}}};
 
         Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
-        linalg::Matrixf<1, 2> C {{{1, 0}}};
+        linalg::Matrixf<1, 2> C{{{1, 0}}};
         linalg::Matrixf<1, 1> y = C * X;
 
         X     = Xdot;
@@ -391,12 +406,12 @@ int main()
 
         // printf("%f  %f  %f  %f\n", x1, x2, y1, y2);
 
-        linalg::Matrixf<6, 6> basis {{{x1, x2, 0, 0, 0, 0},
-                                      {y1, y2, 0, 0, 0, 0},
-                                      {0, 0, 1, 0, 0, 0},
-                                      {0, 0, 0, x1, x2, 0},
-                                      {0, 0, 0, y1, y2, 0},
-                                      {0, 0, 0, 0, 0, 1}}};
+        linalg::Matrixf<6, 6> basis{{{x1, x2, 0, 0, 0, 0},
+                                     {y1, y2, 0, 0, 0, 0},
+                                     {0, 0, 1, 0, 0, 0},
+                                     {0, 0, 0, x1, x2, 0},
+                                     {0, 0, 0, y1, y2, 0},
+                                     {0, 0, 0, 0, 0, 1}}};
 
         // Draw the grid.
         {
