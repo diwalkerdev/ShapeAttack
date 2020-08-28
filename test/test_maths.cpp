@@ -89,6 +89,7 @@ int main()
         auto C = A * B;
         auto D = C * 2.f;
         auto E = 2.f * C;
+        D *= rtransf ...
         std::cout << C;
         std::cout << D;
         std::cout << E;
