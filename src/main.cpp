@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "fmt/core.h"
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
 #include "shapes.hpp"
+#include "spdlog/spdlog.h"
 #include "typedefs.h"
 
 #include <algorithm>
@@ -138,6 +140,8 @@ auto player_update_physics(L& X, R& Xdot)
 
 int main()
 {
+    spdlog::info("Starting Shape Attack {}", 42);
+    fmt::print("The answer is {}.\n", 42);
     srand(time(nullptr));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)

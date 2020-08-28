@@ -11,7 +11,7 @@ build $
       -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = 
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
 
 build $
     /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/test/meliorate_gen.o: $
@@ -23,7 +23,7 @@ build $
       -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = 
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
 
 build Tests.exe: exe $
     /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/test/test_maths.o $
@@ -35,7 +35,7 @@ build Tests.exe: exe $
       -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = 
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
   exe_name = Tests.exe
   linker_args = -rpath '@executable_path' -lSDL2
 
