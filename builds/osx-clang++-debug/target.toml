@@ -42,7 +42,7 @@ defines = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]
         "include",
         "lib/LinAlg/include",
         "lib/spdlog/include",  # TODO: this shouldn't be necessary as the include path should be added from the requires.
-        "lib/fmt/include"  # TODO: this shouldn't be necessary as the include path should be added from the requires.
+        "lib/fmt/include"
     ]
     libraries = ["SDL2"]
 
@@ -55,7 +55,9 @@ defines = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]
     includePaths = [
         "/usr/local/include/SDL2",
         "include",
-        "lib/Meliorate/include",
-        "lib/LinAlg/include"
+        "lib/LinAlg/include",
+        "lib/spdlog/include",  # TODO: this shouldn't be necessary as the include path should be added from the requires.
+        "lib/fmt/include",
+        "lib/Meliorate/include"
     ]
     libraries = ["SDL2"]

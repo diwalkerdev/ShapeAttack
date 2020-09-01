@@ -21,7 +21,9 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher": []
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "build osx",
@@ -41,7 +43,31 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher": []
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "build test osx",
+            "command": "/Users/davidwalker/Library/Python/3.7/bin/aim",
+            "type": "shell",
+            "group": "build",
+            "args": [
+                "build",
+                "test",
+                "--target=builds/osx-clang++-debug"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "run",
@@ -56,7 +82,9 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher": []
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "run osx",
@@ -71,7 +99,26 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher": []
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "run test osx",
+            "command": "./builds/osx-clang++-debug/test/Test.exe",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }

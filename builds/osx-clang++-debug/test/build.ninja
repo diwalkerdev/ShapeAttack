@@ -7,8 +7,10 @@ build $
   compiler = clang++
   includes = -I/usr/local/Cellar/sdl2/2.0.12_1/include/SDL2 $
       -I/Users/davidwalker/Projects/ShapeAttack/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/spdlog/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/fmt/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
@@ -19,8 +21,10 @@ build $
   compiler = clang++
   includes = -I/usr/local/Cellar/sdl2/2.0.12_1/include/SDL2 $
       -I/Users/davidwalker/Projects/ShapeAttack/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/spdlog/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/fmt/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
@@ -31,8 +35,10 @@ build Tests.exe: exe $
   compiler = clang++
   includes = -I/usr/local/Cellar/sdl2/2.0.12_1/include/SDL2 $
       -I/Users/davidwalker/Projects/ShapeAttack/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/spdlog/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/fmt/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/Meliorate/include
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
