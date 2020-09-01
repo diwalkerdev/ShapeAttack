@@ -1,12 +1,13 @@
-#include "linalg/matrix.h"
-#include "linalg/util.h"
+#include "linalg/matrix.hpp"
 #include "meliorate/meliorate.h"
 
 
-void test_make_matrix()
+void test_matrix_constructors()
 {
-    // code goes here.
-    linalg::Matrix<float, 3, 2> A{{1.f, 2.f, 3.f, 4.f, 5.f, 6.f}};
+    linalg::Matrixf<3, 2> A{
+        {{1.f, 2.f},
+         {3.f, 4.f},
+         {5.f, 6.f}}};
     std::cout << A;
     // prints:
     // 1,2
@@ -14,8 +15,7 @@ void test_make_matrix()
     // 5,6
 }
 
-// Not extracted as a test function because the function name
-// does not begin with "test".
+/*
 void test_matrix_multiplication()
 {
     linalg::Matrixf<2, 2> A{{1.f, 2.f, 3.f, 4.f}};
@@ -72,6 +72,7 @@ int main()
     meliorate_stop_on_error = false;
     return meliorate_run<std::exception>();
 }
+*/
 
 /*
 #include <iostream>
@@ -107,7 +108,6 @@ int main()
         D += 2.f;
         std::cout << D;
     }
-
 
     return 0;
 }

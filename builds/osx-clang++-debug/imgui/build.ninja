@@ -1,0 +1,52 @@
+include $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/rules.ninja
+
+build $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_widgets.o: $
+    compile $
+    /Users/davidwalker/Projects/ShapeAttack/lib/imgui/imgui_widgets.cpp
+  compiler = clang++
+  includes = -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
+  flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
+
+build $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui.o: $
+    compile /Users/davidwalker/Projects/ShapeAttack/lib/imgui/imgui.cpp
+  compiler = clang++
+  includes = -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
+  flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
+
+build $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_demo.o: $
+    compile /Users/davidwalker/Projects/ShapeAttack/lib/imgui/imgui_demo.cpp
+  compiler = clang++
+  includes = -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
+  flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
+
+build $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_draw.o: $
+    compile /Users/davidwalker/Projects/ShapeAttack/lib/imgui/imgui_draw.cpp
+  compiler = clang++
+  includes = -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
+  flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
+
+build $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/libimgui.a: $
+    archive $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_widgets.o $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui.o $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_demo.o $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/imgui_draw.o
+  archiver = ar
+
+build libimgui.a: phony $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/libimgui.a
+

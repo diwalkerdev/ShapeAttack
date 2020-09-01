@@ -1,28 +1,48 @@
 include $
     /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/rules.ninja
 
+subninja $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/spdlog/build.ninja
+
+subninja $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/fmt/build.ninja
+
+subninja $
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui/build.ninja
+
 build $
     /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/shapeAttack/main.o: $
     compile /Users/davidwalker/Projects/ShapeAttack/src/main.cpp
   compiler = clang++
   includes = -I/usr/local/Cellar/sdl2/2.0.12_1/include/SDL2 $
       -I/Users/davidwalker/Projects/ShapeAttack/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/spdlog/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/fmt/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = 
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
 
 build ShapeAttack.exe: exe $
-    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/shapeAttack/main.o
+    /Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/shapeAttack/main.o $
+    | libspdlog.a libfmt.a libimgui.a
   compiler = clang++
   includes = -I/usr/local/Cellar/sdl2/2.0.12_1/include/SDL2 $
       -I/Users/davidwalker/Projects/ShapeAttack/include $
-      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/LinAlg/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/spdlog/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/fmt/include $
+      -I/Users/davidwalker/Projects/ShapeAttack/lib/imgui
   flags = -std=c++2a -O1 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = 
+  defines = -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL
   exe_name = ShapeAttack.exe
-  linker_args = -rpath '@executable_path' -lSDL2
+  linker_args = -rpath '@executable_path' $
+      -L/Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/spdlog $
+      -L/Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/fmt $
+      -L/Users/davidwalker/Projects/ShapeAttack/builds/osx-clang++-debug/imgui $
+      -lspdlog -lfmt -limgui -lSDL2
 
 build shapeAttack: phony ShapeAttack.exe
 

@@ -4,3 +4,12 @@
 [submodule "lib/LinAlg"]
 	path = lib/LinAlg
 	url = git@github.com:diwalkerdev/LinAlg.git
+[submodule "lib/spdlog"]
+	path = lib/spdlog
+	url = git@github.com:gabime/spdlog.git
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = git@github.com:fmtlib/fmt.git
+[submodule "lib/imgui"]
+	path = lib/imgui
+	url = git@github.com:ocornut/imgui.git
