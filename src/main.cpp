@@ -150,13 +150,15 @@ auto bullet_update(Bullet& bullet)
     auto dp = bullet.velocity * dt;
     bullet.position += dp;
 
-    return bullet.data * rtransf(0, bullet.position[0], bullet.position[1]);
+    return bullet.data * rtransf(bullet.theta, bullet.position[0], bullet.position[1]);
 }
 
 //////////////////////////////////////////////////////////////////////////////
+int tests();
 
 int main()
 {
+    tests();
     spdlog::info("Starting Shape Attack {}", 42);
 
     srand(time(nullptr));
@@ -229,7 +231,8 @@ int main()
 
             if (bullet.is_active)
             {
-                auto points = bullet_update(bullet);
+                bullet.theta = player.theta;
+                auto points  = bullet_update(bullet);
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
                 draw(renderer, points);
             }
@@ -287,8 +290,8 @@ struct fmt::formatter<linalg::Matrix<Tp, M, N>> {
     }
 };
 
-/*
-int main()
+
+int tests()
 {
     const auto A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
     const auto B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
@@ -299,10 +302,13 @@ int main()
     // Check can access const matrices.
     float x = A[0][0];
 
+    //A[0] = 2; // cc error, A is const.
+
     {
         auto C = A * B;
         auto D = C * 2.f;
         auto E = 2.f * C;
+        // E *= A; // currently undefined, ambiguous? would you really want dot mult?
         D *= 2.f;
 
         assert(A == A);
@@ -314,6 +320,7 @@ int main()
         auto C = A + B;
         auto D = C + 2.f;
         auto E = 2.f + C;
+        E += A;
         std::cout << C;
         std::cout << D;
         std::cout << E;
@@ -323,4 +330,3 @@ int main()
 
     return 0;
 }
-*/

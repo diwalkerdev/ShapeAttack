@@ -76,8 +76,8 @@ struct Bullet {
         this->is_active = true;
         this->theta     = theta;
 
-        auto trajectory = linalg::Vectorf<2>{{cosf(theta), sinf(theta)}};
-        this->velocity  = trajectory * 10;
+        auto trajectory = linalg::Vectorf<2>{{cosf(theta), -sinf(theta)}};
+        this->velocity  = trajectory * 40;
     }
 
     Bullet(Bullet const& other) = default;
