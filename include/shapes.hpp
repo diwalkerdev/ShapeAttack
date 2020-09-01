@@ -50,6 +50,42 @@ struct Shape {
     }
 };
 
+
+struct Bullet {
+    bool  is_active;
+    float radius;
+    float theta;
+
+    linalg::Vectorf<2> position;
+    linalg::Vectorf<2> velocity;
+
+    linalg::Matrixf<10 + 2, 3> data;
+
+    Bullet(float radius, float const (&position)[2])
+        : is_active(false)
+        , radius(radius)
+        , theta(0)
+        , position{position}
+        , velocity{{0, 0}}
+        , data(make_circle_points<10>(radius))
+    {
+    }
+
+    auto fire(float theta)
+    {
+        this->is_active = true;
+        this->theta     = theta;
+
+        auto trajectory = linalg::Vectorf<2>{{cosf(theta), sinf(theta)}};
+        this->velocity  = trajectory * 10;
+    }
+
+    Bullet(Bullet const& other) = default;
+    Bullet(Bullet&& other)      = default;
+    Bullet& operator=(Bullet const& other) = default;
+    Bullet& operator=(Bullet&& other) = default;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 
 #endif // SHAPE_ATTACK_SHAPES_HPP

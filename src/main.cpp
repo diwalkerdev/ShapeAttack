@@ -25,6 +25,7 @@ static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
 static float turn      = 0;
 static bool  quit_game = false;
+static bool  fire      = false;
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -53,6 +54,9 @@ void handle_input()
                 break;
             case SDLK_LSHIFT:
                 break;
+            case SDLK_SPACE:
+                fire = false;
+                break;
             default:
                 break;
             }
@@ -72,6 +76,9 @@ void handle_input()
                 turn = -1;
                 break;
             case SDLK_LSHIFT:
+                break;
+            case SDLK_SPACE:
+                fire = true;
                 break;
             case SDLK_ESCAPE:
                 quit_game = true;
@@ -121,13 +128,13 @@ auto player_update_physics(L& X, R& Xdot)
     // 0.2 tanh(10x)+x^3/10;
     linalg::Matrixf<2, 3> A{{{0, 1, 0},
                              {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
-    linalg::Matrixf<2, 1> B{{{0, 1}}};
+    linalg::Matrixf<2, 1> B{{0, 1}};
 
-    linalg::Matrixf<3, 1> Xn{{{X[0], X[1], 1}}};
+    linalg::Matrixf<3, 1> Xn{{X[0], X[1], 1}};
 
     Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
-    linalg::Matrixf<1, 2> C{{{1, 0}}};
+    linalg::Matrixf<1, 2> C{{1, 0}};
     linalg::Matrixf<1, 1> y = C * X;
 
     X     = Xdot;
@@ -136,12 +143,22 @@ auto player_update_physics(L& X, R& Xdot)
     return -theta;
 }
 
+auto bullet_update(Bullet& bullet)
+{
+    float dt = 1 / 30.f;
+
+    auto dp = bullet.velocity * dt;
+    bullet.position += dp;
+
+    return bullet.data * rtransf(0, bullet.position[0], bullet.position[1]);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
     spdlog::info("Starting Shape Attack {}", 42);
-    fmt::print("The answer is {}.\n", 42);
+
     srand(time(nullptr));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -177,6 +194,7 @@ int main()
     SDL_Rect background_rect{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
     auto player = Shape<3>(20, HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT);
+    auto bullet = Bullet(10, {HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT});
 
     linalg::Vectorf<2> X{{M_PI_2, 0}};
     linalg::Vectorf<2> Xdot{{0, 0}};
@@ -196,9 +214,25 @@ int main()
         {
             float theta  = player_update_physics(X, Xdot);
             auto  points = player.data * rtransf(theta, player.x, player.y);
+            player.theta = theta;
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
             draw(renderer, points);
+        }
+
+        // update the bullet.
+        {
+            if (fire)
+            {
+                bullet.fire(player.theta);
+            }
+
+            if (bullet.is_active)
+            {
+                auto points = bullet_update(bullet);
+                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                draw(renderer, points);
+            }
         }
 
         end_frame  = SDL_GetTicks();
@@ -226,3 +260,67 @@ int main()
 
     return 0;
 }
+
+
+#include <iostream>
+
+template <typename Tp, std::size_t M, std::size_t N>
+struct fmt::formatter<linalg::Matrix<Tp, M, N>> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(linalg::Matrix<Tp, M, N> const& A, FormatContext& ctx)
+    {
+        std::string buffer;
+        buffer.reserve(16);
+        for (auto const& row : iter(A))
+        {
+            for (auto el : row)
+            {
+                //  TODO: forward on the representation from the parse step.
+                buffer += fmt::format("{0} ", el);
+            }
+            buffer += "\n";
+        }
+        return fmt::format_to(ctx.out(), "{0}", buffer);
+    }
+};
+
+/*
+int main()
+{
+    const auto A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const auto B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+
+    auto X = linalg::Matrix{{{1, 2}, {3, 4}}};
+    fmt::print("rows {}  cols {}\n", X.rows(), X.cols());
+
+    // Check can access const matrices.
+    float x = A[0][0];
+
+    {
+        auto C = A * B;
+        auto D = C * 2.f;
+        auto E = 2.f * C;
+        D *= 2.f;
+
+        assert(A == A);
+
+        fmt::print("{0}\n", A);
+    }
+
+    {
+        auto C = A + B;
+        auto D = C + 2.f;
+        auto E = 2.f + C;
+        std::cout << C;
+        std::cout << D;
+        std::cout << E;
+        D += 2.f;
+        std::cout << D;
+    }
+
+    return 0;
+}
+*/
