@@ -1,7 +1,6 @@
 {
     "editor.formatOnSave": true,
-    "editor.formatOnType": true,
-    "C_Cpp.clang_format_path": "/usr/local/bin/clang-format",
+    "C_Cpp.clang_format_path": "/usr/bin/clang-format",
     "files.associations": {
         "ostream": "cpp",
         "array": "cpp",

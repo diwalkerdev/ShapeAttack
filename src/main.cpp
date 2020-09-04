@@ -7,6 +7,7 @@
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
+#include "misc.hpp"
 #include "shapes.hpp"
 #include "spdlog/spdlog.h"
 #include "typedefs.h"
@@ -31,7 +32,9 @@ static bool  fire      = false;
 
 void handle_input()
 {
-    SDL_Event event;
+    SDL_Event  event;
+    static int fire_debounce = 0;
+    fire                     = false;
 
     while (SDL_PollEvent(&event) != 0)
     {
@@ -55,7 +58,6 @@ void handle_input()
             case SDLK_LSHIFT:
                 break;
             case SDLK_SPACE:
-                fire = false;
                 break;
             default:
                 break;
@@ -78,7 +80,12 @@ void handle_input()
             case SDLK_LSHIFT:
                 break;
             case SDLK_SPACE:
-                fire = true;
+                if (fire_debounce == 0)
+                {
+                    fire_debounce = 2;
+                    fire          = true;
+                }
+
                 break;
             case SDLK_ESCAPE:
                 quit_game = true;
@@ -88,6 +95,11 @@ void handle_input()
             }
         }
     } // End event loop
+
+    if (fire_debounce > 0)
+    {
+        --fire_debounce;
+    }
 }
 
 auto to_screen_y(float y) -> float
@@ -122,7 +134,7 @@ auto player_update_physics(L& X, R& Xdot)
     float dt = 1 / 30.f;
     float m  = 1.f;
     float k  = 0.2f;
-    float v  = X[1];
+    float v  = X[1][0];
     float theta;
 
     // 0.2 tanh(10x)+x^3/10;
@@ -130,7 +142,7 @@ auto player_update_physics(L& X, R& Xdot)
                              {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
     linalg::Matrixf<2, 1> B{{0, 1}};
 
-    linalg::Matrixf<3, 1> Xn{{X[0], X[1], 1}};
+    linalg::Matrixf<3, 1> Xn{{X[0][0], X[1][0], 1}};
 
     Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
@@ -138,19 +150,9 @@ auto player_update_physics(L& X, R& Xdot)
     linalg::Matrixf<1, 1> y = C * X;
 
     X     = Xdot;
-    theta = y[0];
+    theta = y[0][0];
 
     return -theta;
-}
-
-auto bullet_update(Bullet& bullet)
-{
-    float dt = 1 / 30.f;
-
-    auto dp = bullet.velocity * dt;
-    bullet.position += dp;
-
-    return bullet.data * rtransf(bullet.theta, bullet.position[0], bullet.position[1]);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -159,7 +161,7 @@ int tests();
 int main()
 {
     tests();
-    spdlog::info("Starting Shape Attack {}", 42);
+    spdlog::info("Starting Shape Attack, get ready... ");
 
     srand(time(nullptr));
 
@@ -196,7 +198,12 @@ int main()
     SDL_Rect background_rect{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
     auto player = Shape<3>(20, HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT);
-    auto bullet = Bullet(10, {HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT});
+
+    std::array<Bullet, 3> bullets;
+    for (auto& bullet : bullets)
+    {
+        bullet = Bullet(4);
+    }
 
     linalg::Vectorf<2> X{{M_PI_2, 0}};
     linalg::Vectorf<2> Xdot{{0, 0}};
@@ -226,16 +233,30 @@ int main()
         {
             if (fire)
             {
-                bullet.fire(player.theta);
+                auto* bullet = std::find_if(bullets.begin(),
+                                            bullets.end(),
+                                            [](Bullet& bullet) { return (bullet.is_active) ? false : true; });
+                if (bullet != bullets.end())
+                {
+                    bullet->fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                }
+                else
+                {
+                    spdlog::info("No more bullets.");
+                }
             }
+        }
 
+        for (auto& bullet : bullets)
+        {
             if (bullet.is_active)
             {
-                bullet.theta = player.theta;
-                auto points  = bullet_update(bullet);
+                auto points = bullet.update();
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
                 draw(renderer, points);
             }
+
+            bullet.check_collisions();
         }
 
         end_frame  = SDL_GetTicks();
@@ -265,32 +286,6 @@ int main()
 }
 
 
-#include <iostream>
-
-template <typename Tp, std::size_t M, std::size_t N>
-struct fmt::formatter<linalg::Matrix<Tp, M, N>> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
-    template <typename FormatContext>
-    auto format(linalg::Matrix<Tp, M, N> const& A, FormatContext& ctx)
-    {
-        std::string buffer;
-        buffer.reserve(16);
-        for (auto const& row : iter(A))
-        {
-            for (auto el : row)
-            {
-                //  TODO: forward on the representation from the parse step.
-                buffer += fmt::format("{0} ", el);
-            }
-            buffer += "\n";
-        }
-        return fmt::format_to(ctx.out(), "{0}", buffer);
-    }
-};
-
-
 int tests()
 {
     const auto A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
@@ -308,7 +303,7 @@ int tests()
         auto C = A * B;
         auto D = C * 2.f;
         auto E = 2.f * C;
-        // E *= A; // currently undefined, ambiguous? would you really want dot mult?
+        // E *= A; // currently undefined, ambiguous? do you point-wise or matrix mult?
         D *= 2.f;
 
         assert(A == A);
