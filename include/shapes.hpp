@@ -117,6 +117,7 @@ struct Bullet {
         {
             is_active = false;
         }
+        return is_active;
     }
 
     Bullet(Bullet const& other) = default;

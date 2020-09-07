@@ -9,7 +9,7 @@
 #include "linalg/trans.hpp"
 #include "misc.hpp"
 #include "shapes.hpp"
-// #include "spdlog/spdlog.h"
+#include "spdlog/spdlog.h"
 #include "typedefs.h"
 
 #include <algorithm>
@@ -204,6 +204,7 @@ int main()
     {
         bullet = Bullet(4);
     }
+    int bindex = 0;
 
     linalg::Vectorf<2> X{{M_PI_2, 0}};
     linalg::Vectorf<2> Xdot{{0, 0}};
@@ -233,12 +234,11 @@ int main()
         {
             if (fire)
             {
-                auto* bullet = std::find_if(bullets.begin(),
-                                            bullets.end(),
-                                            [](Bullet& bullet) { return !(bullet.is_active); });
-                if (bullet != bullets.end())
+                if (bindex < 3)
                 {
-                    bullet->fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                    auto& bullet = bullets[bindex];
+                    bullet.fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                    bindex += 1;
                 }
                 else
                 {
@@ -247,17 +247,22 @@ int main()
             }
         }
 
-        for (auto& bullet : bullets)
+        assert(bindex <= 3);
+        for (int i = 0; i < bindex; ++i)
         {
-            if (bullet.is_active)
-            {
-                auto points = bullet.update();
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                draw(renderer, points);
-            }
+            spdlog::info("i: {0}  bindex: {1}", i, bindex);
+            auto& bullet = bullets[i];
+            auto  points = bullet.update();
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+            draw(renderer, points);
 
-            bullet.check_collisions();
-        }
+            auto is_active = bullet.check_collisions();
+            if (!is_active)
+            {
+                bullet = bullets[bindex - 1];
+                bindex -= 1;
+            }
+        };
 
         end_frame  = SDL_GetTicks();
         time_taken = end_frame - start_frame;
