@@ -199,7 +199,11 @@ int main()
 
     auto player = Shape<3>(20, HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT);
 
-    std::list<Bullet> bullets;
+    std::array<Bullet, 3> bullets;
+    for (auto& bullet : bullets)
+    {
+        bullet = Bullet(4);
+    }
 
     linalg::Vectorf<2> X{{M_PI_2, 0}};
     linalg::Vectorf<2> Xdot{{0, 0}};
@@ -229,24 +233,31 @@ int main()
         {
             if (fire)
             {
-                if (bullets.size() < 3)
+                auto* bullet = std::find_if(bullets.begin(),
+                                            bullets.end(),
+                                            [](Bullet& bullet) { return !(bullet.is_active); });
+                if (bullet != bullets.end())
                 {
-                    auto bullet = Bullet(4);
-                    bullet.fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
-                    bullets.push_front(bullet);
+                    bullet->fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                }
+                else
+                {
+                    // spdlog::info("No more bullets.");
                 }
             }
         }
 
-        for (auto& it : bullets)
+        for (auto& bullet : bullets)
         {
-            auto points = it.update();
-            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-            draw(renderer, points);
+            if (bullet.is_active)
+            {
+                auto points = bullet.update();
+                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                draw(renderer, points);
+            }
 
-            it.check_collisions();
+            bullet.check_collisions();
         }
-        std::erase_if(bullets, [](Bullet& bullet) { return !bullet.is_active; });
 
         end_frame  = SDL_GetTicks();
         time_taken = end_frame - start_frame;
