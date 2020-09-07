@@ -1,15 +1,6 @@
 include $
     /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/rules.ninja
 
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/fmt/build.ninja
-
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/spdlog/build.ninja
-
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/imgui/build.ninja
-
 build $
     /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o: $
     compile /home/dwalker0044/Projects/ShapeAttack/src/main.cpp
@@ -25,8 +16,7 @@ build $
   defines = -DSPDLOG_FMT_EXTERNAL
 
 build ShapeAttack.exe: exe $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o $
-    | libfmt.a libspdlog.a libimgui.a
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o
   compiler = clang++
   includes = -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
@@ -42,7 +32,7 @@ build ShapeAttack.exe: exe $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/fmt $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/spdlog $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/imgui $
-      -lfmt -lspdlog -limgui -lSDL2
+      -lSDL2 -lfmt -lspdlog -limgui
 
 build shapeAttack: phony ShapeAttack.exe
 

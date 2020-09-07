@@ -3,7 +3,7 @@
 
 #include "fmt/core.h"
 #include "misc.hpp"
-#include "spdlog/spdlog.h"
+// #include "spdlog/spdlog.h"
 #include <linalg/matrix.hpp>
 
 //////////////////////////////////////////////////////////////////////////////
@@ -109,11 +109,11 @@ struct Bullet {
     auto check_collisions()
     {
         auto point  = linalg::Matrixf<2, 1>{X[0]};
-        auto screen = linalg::Matrix{{{0, 0}, {640, 400}}};
-        if (!((screen[0][0] <= point[0][0])
-              && (point[0][0] < screen[1][0])
-              && (screen[0][1] <= point[1][0])
-              && (point[1][0] < screen[1][1])))
+        auto screen = linalg::Matrix{{{0.0, 0.0}, {640.0, 400.0}}};
+        if (!((screen[0][0] <= point[0])
+              && (point[0] < screen[1][0])
+              && (screen[0][1] <= point[1])
+              && (point[1] < screen[1][1])))
         {
             is_active = false;
         }

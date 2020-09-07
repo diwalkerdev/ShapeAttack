@@ -8,7 +8,8 @@ compilerFrontend="gcc"
 flags = [
     "-std=c++20",
     "-O1",
-    "-g"
+    "-g",
+    # "-Wall"
 ]
 
 defines = ["-DSPDLOG_FMT_EXTERNAL"]
@@ -47,15 +48,23 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
         "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
         "-fsanitize=undefined"
     ]
-    requires = ["fmt", "spdlog", "imgui"]
+    # requires = ["fmt", "spdlog", "imgui"]
     outputName = "ShapeAttack"
     srcDirs = ["src"]
     includePaths = [
         "/usr/include/SDL2",
         "include",
-        "lib/LinAlg/include"
+        "lib/LinAlg/include",
+        "lib/fmt/include",
+        "lib/spdlog/include",
+        "lib/imgui"
     ]
-    libraries = ["SDL2"]
+    libraryPaths = [
+        "builds/linux-clang++-debug/fmt",
+        "builds/linux-clang++-debug/spdlog",
+        "builds/linux-clang++-debug/imgui"
+    ]
+    libraries = ["SDL2", "fmt", "spdlog", "imgui"]
 
 
 [[builds]]
@@ -66,13 +75,21 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
         "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
         "-fsanitize=undefined"
     ]
-    requires = ["fmt", "spdlog"]
+    # requires = ["fmt", "spdlog"]
     outputName = "Tests"
     srcDirs = ["test"]
     includePaths = [
         "/usr/include/SDL2",
         "include",
         "lib/Meliorate/include",
-        "lib/LinAlg/include"
+        "lib/LinAlg/include",
+        "lib/fmt/include",
+        "lib/spdlog/include",
+        "lib/imgui",
     ]
-    libraries = ["SDL2"]
+    libraryPaths = [
+        "builds/linux-clang++-debug/fmt",
+        "builds/linux-clang++-debug/spdlog",
+        "builds/linux-clang++-debug/imgui"
+    ]
+    libraries = ["SDL2", "fmt", "spdlog", "imgui"]
