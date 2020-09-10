@@ -133,8 +133,8 @@ auto player_update_physics(L& X, R& Xdot)
     float u  = turn * 5;
     float dt = 1 / 30.f;
     float m  = 1.f;
-    float k  = 0.2f;
-    float v  = X[1][0];
+    // float k  = 0.2f;
+    float v = X[1];
     float theta;
 
     // 0.2 tanh(10x)+x^3/10;
@@ -142,7 +142,7 @@ auto player_update_physics(L& X, R& Xdot)
                              {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
     linalg::Matrixf<2, 1> B{{0, 1}};
 
-    linalg::Matrixf<3, 1> Xn{{X[0][0], X[1][0], 1}};
+    linalg::Matrixf<3, 1> Xn{{X[0], X[1], 1}};
 
     Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
 
@@ -150,18 +150,18 @@ auto player_update_physics(L& X, R& Xdot)
     linalg::Matrixf<1, 1> y = C * X;
 
     X     = Xdot;
-    theta = y[0][0];
+    theta = y[0];
 
     return -theta;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 int tests();
-
+#include <list>
 int main()
 {
     tests();
-    spdlog::info("Starting Shape Attack, get ready... ");
+    // spdlog::info("Starting Shape Attack, get ready... ");
 
     srand(time(nullptr));
 
@@ -204,6 +204,7 @@ int main()
     {
         bullet = Bullet(4);
     }
+    int bindex = 0;
 
     linalg::Vectorf<2> X{{M_PI_2, 0}};
     linalg::Vectorf<2> Xdot{{0, 0}};
@@ -233,31 +234,35 @@ int main()
         {
             if (fire)
             {
-                auto* bullet = std::find_if(bullets.begin(),
-                                            bullets.end(),
-                                            [](Bullet& bullet) { return (bullet.is_active) ? false : true; });
-                if (bullet != bullets.end())
+                if (bindex < 3)
                 {
-                    bullet->fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                    auto& bullet = bullets[bindex];
+                    bullet.fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
+                    bindex += 1;
                 }
                 else
                 {
-                    spdlog::info("No more bullets.");
+                    // spdlog::info("No more bullets.");
                 }
             }
         }
 
-        for (auto& bullet : bullets)
+        assert(bindex <= 3);
+        for (int i = 0; i < bindex; ++i)
         {
-            if (bullet.is_active)
-            {
-                auto points = bullet.update();
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                draw(renderer, points);
-            }
+            spdlog::info("i: {0}  bindex: {1}", i, bindex);
+            auto& bullet = bullets[i];
+            auto  points = bullet.update();
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+            draw(renderer, points);
 
-            bullet.check_collisions();
-        }
+            auto is_active = bullet.check_collisions();
+            if (!is_active)
+            {
+                bullet = bullets[bindex - 1];
+                bindex -= 1;
+            }
+        };
 
         end_frame  = SDL_GetTicks();
         time_taken = end_frame - start_frame;
@@ -285,14 +290,23 @@ int main()
     return 0;
 }
 
-
 int tests()
 {
-    const auto A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
-    const auto B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const auto               A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const auto               B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const linalg::Vectorf<2> v{{1, 2}};
 
-    auto X = linalg::Matrix{{{1, 2}, {3, 4}}};
-    fmt::print("rows {}  cols {}\n", X.rows(), X.cols());
+    // std::cout << "A: " << A;
+    // std::cout << "v: " << v;
+    // std::cout << "rvalue: " << linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+
+    fmt::print("A: {0}\n", A);
+    fmt::print("v: {0}\n", v);
+    fmt::print("rvalue: {0}", linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}});
+
+
+    auto X = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    // fmt::print("rows {}  cols {}\n", X.rows(), X.cols());
 
     // Check can access const matrices.
     float x = A[0][0];
@@ -308,14 +322,15 @@ int tests()
 
         assert(A == A);
 
-        fmt::print("{0}\n", A);
+        // fmt::print("{0}\n", A);
     }
 
     {
         auto C = A + B;
         auto D = C + 2.f;
         auto E = 2.f + C;
-        E += A;
+
+        E += E += A;
         std::cout << C;
         std::cout << D;
         std::cout << E;

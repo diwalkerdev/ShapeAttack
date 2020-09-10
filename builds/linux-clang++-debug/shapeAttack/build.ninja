@@ -1,48 +1,40 @@
 include $
     /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/rules.ninja
 
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/fmt/build.ninja
-
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/spdlog/build.ninja
-
-subninja $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/imgui/build.ninja
-
 build $
     /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o: $
     compile /home/dwalker0044/Projects/ShapeAttack/src/main.cpp
   compiler = clang++
-  includes = -I/usr/include/SDL2 $
+  includes = -I/usr/include -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/LinAlg/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/fmt/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui
-  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w
+  flags = -std=c++20 -O1 -g
+  defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build ShapeAttack.exe: exe $
-    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o $
-    | libfmt.a libspdlog.a libimgui.a
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/shapeAttack/main.o
   compiler = clang++
-  includes = -I/usr/include/SDL2 $
+  includes = -I/usr/include -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/LinAlg/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/fmt/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui
-  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w
+  flags = -std=c++20 -O1 -g
+  defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
   exe_name = ShapeAttack.exe
   linker_args = -Wl,-rpath='$$ORIGIN' $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/fmt $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/spdlog $
       -L/home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/imgui $
-      -lfmt -lspdlog -limgui -lSDL2
+      -lGL -ldl -lSDL2 -lfmt -lspdlog -limgui
 
 build shapeAttack: phony ShapeAttack.exe
 
