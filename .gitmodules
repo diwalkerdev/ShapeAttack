@@ -13,3 +13,6 @@
 [submodule "lib/imgui"]
 	path = lib/imgui
 	url = git@github.com:ocornut/imgui.git
+[submodule "lib/kiss_sdl"]
+	path = lib/kiss_sdl
+	url = https://github.com/actsl/kiss_sdl

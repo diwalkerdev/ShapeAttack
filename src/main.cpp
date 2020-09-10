@@ -9,7 +9,7 @@
 #include "linalg/trans.hpp"
 #include "misc.hpp"
 #include "shapes.hpp"
-#include "spdlog/spdlog.h"
+// #include "spdlog/spdlog.h"
 #include "typedefs.h"
 
 #include <algorithm>
@@ -24,77 +24,81 @@ static constexpr int SCREEN_HEIGHT      = 400;
 static constexpr int HALF_SCREEN_WIDTH  = SCREEN_WIDTH / 2;
 static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
-static float turn      = 0;
-static bool  quit_game = false;
-static bool  fire      = false;
+static float turn             = 0;
+static bool  quit_game        = false;
+static bool  fire             = false;
+static bool  heads_up_display = false;
 
 //////////////////////////////////////////////////////////////////////////////
 
-void handle_input()
+void handle_input(SDL_Event& event)
 {
-    SDL_Event  event;
     static int fire_debounce = 0;
     fire                     = false;
 
-    while (SDL_PollEvent(&event) != 0)
+    if (event.type == SDL_QUIT)
     {
-        if (event.type == SDL_QUIT)
+    }
+    else if (event.type == SDL_KEYUP)
+    {
+        switch (event.key.keysym.sym)
         {
+        case SDLK_UP:
+            break;
+        case SDLK_DOWN:
+            break;
+        case SDLK_LEFT:
+            turn = 0;
+            break;
+        case SDLK_RIGHT:
+            turn = 0;
+            break;
+        case SDLK_LSHIFT:
+            break;
+        case SDLK_SPACE:
+            break;
+        case SDLK_h:
+            heads_up_display = false;
+            break;
+        default:
+            break;
         }
-        else if (event.type == SDL_KEYUP)
+    }
+    else if (event.type == SDL_KEYDOWN)
+    {
+        switch (event.key.keysym.sym)
         {
-            switch (event.key.keysym.sym)
+        case SDLK_UP:
+            break;
+        case SDLK_DOWN:
+            break;
+        case SDLK_LEFT:
+            turn = 1;
+            break;
+        case SDLK_RIGHT:
+            turn = -1;
+            break;
+        case SDLK_LSHIFT:
+            break;
+        case SDLK_SPACE:
+            if (fire_debounce == 0)
             {
-            case SDLK_UP:
-                break;
-            case SDLK_DOWN:
-                break;
-            case SDLK_LEFT:
-                turn = 0;
-                break;
-            case SDLK_RIGHT:
-                turn = 0;
-                break;
-            case SDLK_LSHIFT:
-                break;
-            case SDLK_SPACE:
-                break;
-            default:
-                break;
+                fire_debounce = 2;
+                fire          = true;
             }
-        }
-        else if (event.type == SDL_KEYDOWN)
-        {
-            switch (event.key.keysym.sym)
-            {
-            case SDLK_UP:
-                break;
-            case SDLK_DOWN:
-                break;
-            case SDLK_LEFT:
-                turn = 1;
-                break;
-            case SDLK_RIGHT:
-                turn = -1;
-                break;
-            case SDLK_LSHIFT:
-                break;
-            case SDLK_SPACE:
-                if (fire_debounce == 0)
-                {
-                    fire_debounce = 2;
-                    fire          = true;
-                }
 
-                break;
-            case SDLK_ESCAPE:
-                quit_game = true;
-                break;
-            default:
-                break;
-            }
+            break;
+        case SDLK_ESCAPE:
+            quit_game = true;
+            break;
+        case SDLK_h:
+            heads_up_display = true;
+            printf("hud\n");
+            break;
+        default:
+            break;
         }
-    } // End event loop
+    }
 
     if (fire_debounce > 0)
     {
@@ -157,12 +161,106 @@ auto player_update_physics(L& X, R& Xdot)
 
 //////////////////////////////////////////////////////////////////////////////
 int tests();
-#include <list>
+#include "kiss_sdl.h"
+
+void button_event(kiss_button* button, SDL_Event* e, int* draw, int* quit)
+{
+    if (kiss_button_event(button, e, draw))
+        *quit = 1;
+}
+
+
 int main()
 {
-    tests();
-    // spdlog::info("Starting Shape Attack, get ready... ");
 
+    SDL_Renderer* renderer;
+    SDL_Event     e;
+    kiss_array    objects;
+    kiss_window   window;
+    kiss_label    label  = {0};
+    kiss_button   button = {0};
+    char          message[KISS_MAX_LENGTH];
+    int           draw, quit;
+    quit = 0;
+    draw = 1;
+
+    kiss_array_new(&objects);
+    renderer = kiss_init("Hello kiss_sdl", &objects, 640, 320);
+    if (!renderer)
+    {
+        return 1;
+    }
+
+    kiss_window_new(&window, NULL, 0, 0, 0, kiss_screen_width, kiss_screen_height);
+    window.bg = {0xff, 0xff, 0xff, 0x70};
+
+    strcpy(message, "Hello World!");
+
+    kiss_label_new(&label,
+                   &window,
+                   message,
+                   (window.rect.w / 2) - strlen(message) * kiss_textfont.advance / 2,
+                   (window.rect.h / 2) - (kiss_textfont.fontheight + 2 * kiss_normal.h) / 2);
+    label.textcolor.r = 255;
+    kiss_button_new(&button,
+                    &window,
+                    "OK",
+                    (window.rect.w / 2) - kiss_normal.w / 2,
+                    label.rect.y + kiss_textfont.fontheight + kiss_normal.h);
+    window.visible = 1;
+
+    auto* hud = SDL_CreateTexture(renderer,
+                                  SDL_PIXELFORMAT_ABGR8888,
+                                  SDL_TEXTUREACCESS_TARGET,
+                                  window.rect.w,
+                                  window.rect.h);
+    SDL_SetTextureBlendMode(hud, SDL_BLENDMODE_BLEND);
+
+    while (!quit)
+    {
+        SDL_Delay(10);
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_QUIT)
+            {
+                quit = 1;
+            }
+            kiss_window_event(&window, &e, &draw);
+            button_event(&button, &e, &draw, &quit);
+            handle_input(e);
+        }
+
+        {
+            SDL_SetRenderTarget(renderer, nullptr);
+            SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+            SDL_RenderClear(renderer);
+
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+            SDL_Rect box{0, 0, 50, 50};
+            SDL_RenderFillRect(renderer, &box);
+        }
+
+        SDL_SetRenderTarget(renderer, hud);
+        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
+        SDL_RenderClear(renderer);
+        if (heads_up_display)
+        {
+            kiss_window_draw(&window, renderer);
+            kiss_label_draw(&label, renderer);
+            kiss_button_draw(&button, renderer);
+        }
+
+        SDL_SetRenderTarget(renderer, nullptr);
+        SDL_RenderCopy(renderer, hud, nullptr, nullptr);
+        SDL_RenderPresent(renderer);
+        draw = 0;
+    }
+
+    kiss_clean(&objects);
+}
+
+int other()
+{
     srand(time(nullptr));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -214,7 +312,7 @@ int main()
     while (!quit_game)
     {
         start_frame = SDL_GetTicks();
-        handle_input();
+        // handle_input();
 
         // Clear the screen
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -250,7 +348,7 @@ int main()
         assert(bindex <= 3);
         for (int i = 0; i < bindex; ++i)
         {
-            spdlog::info("i: {0}  bindex: {1}", i, bindex);
+            // spdlog::info("i: {0}  bindex: {1}", i, bindex);
             auto& bullet = bullets[i];
             auto  points = bullet.update();
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);

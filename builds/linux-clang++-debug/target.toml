@@ -56,16 +56,34 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
 
 
 [[builds]]
+    name = "kissSDL"
+    defines = ["-DRESDIR=\\\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\\\""]
+    buildRule = "staticlib"
+    outputName = "kiss_sdl"
+    srcDirs = [
+        "lib/kiss_sdl/kiss_draw.c",
+        "lib/kiss_sdl/kiss_general.c",
+        "lib/kiss_sdl/kiss_posix.c",
+        "lib/kiss_sdl/kiss_widgets.c"
+    ]
+    includePaths = [
+        "/usr/include",
+        "/usr/include/SDL2",
+        "lib/kiss_sdl"
+    ]
+
+
+[[builds]]
     name = "shapeAttack"
-    defines = ["-DIMGUI_IMPL_OPENGL_LOADER_GL3W"]
     buildRule = "exe"
+    defines = ["-DRESDIR=\\\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\\\""]
     # flags = [
     #     "-fsanitize=address",
     #     "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
     #     "-fsanitize=undefined",
     # ]
     # requires = ["fmt", "spdlog", "imgui"]
-    # requires = ["imgui"]
+    requires = ["kissSDL"]
     outputName = "ShapeAttack"
     srcDirs = ["src"]
     includePaths = [
@@ -74,17 +92,14 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
         "include",
         "lib/LinAlg/include",
         "lib/fmt/include",
-        "lib/spdlog/include",
-        "lib/imgui",
-        "lib/imgui/examples",
-        "lib/imgui/examples/libs/gl3w"
+        "lib/spdlog/include"
     ]
     libraryPaths = [
         "builds/linux-clang++-debug/fmt",
         "builds/linux-clang++-debug/spdlog",
         "builds/linux-clang++-debug/imgui"
     ]
-    libraries = ["GL", "dl", "SDL2", "fmt", "spdlog", "imgui"]
+    libraries = ["SDL2_image", "SDL2_ttf", "SDL2", "fmt", "spdlog"]
 
 
 [[builds]]
