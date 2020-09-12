@@ -15,7 +15,8 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
       -I/usr/include -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
   defines = -DSPDLOG_FMT_EXTERNAL $
       -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
 
@@ -30,7 +31,8 @@ build ShapeAttack.exe: exe $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
       -I/usr/include -I/usr/include/SDL2 $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
   defines = -DSPDLOG_FMT_EXTERNAL $
       -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
   exe_name = ShapeAttack.exe

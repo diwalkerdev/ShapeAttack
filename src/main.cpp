@@ -4,19 +4,21 @@
 #include <time.h>
 
 #include "fmt/core.h"
+#include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
 #include "misc.hpp"
 #include "shapes.hpp"
-// #include "spdlog/spdlog.h"
 #include "typedefs.h"
+// #include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <complex>
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <string>
 #include <vector>
 
 static constexpr int SCREEN_WIDTH       = 640;
@@ -24,22 +26,18 @@ static constexpr int SCREEN_HEIGHT      = 400;
 static constexpr int HALF_SCREEN_WIDTH  = SCREEN_WIDTH / 2;
 static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
-static float turn             = 0;
-static bool  quit_game        = false;
-static bool  fire             = false;
-static bool  heads_up_display = false;
+static float turn = 0;
+static bool  fire = false;
 
 //////////////////////////////////////////////////////////////////////////////
 
-void handle_input(SDL_Event& event)
+void handle_input(SDL_Event& event, int& quit, int& hud_enabled)
 {
     static int fire_debounce = 0;
     fire                     = false;
 
-    if (event.type == SDL_QUIT)
-    {
-    }
-    else if (event.type == SDL_KEYUP)
+
+    if (event.type == SDL_KEYUP)
     {
         switch (event.key.keysym.sym)
         {
@@ -56,9 +54,6 @@ void handle_input(SDL_Event& event)
         case SDLK_LSHIFT:
             break;
         case SDLK_SPACE:
-            break;
-        case SDLK_h:
-            heads_up_display = false;
             break;
         default:
             break;
@@ -88,12 +83,12 @@ void handle_input(SDL_Event& event)
             }
 
             break;
-        case SDLK_ESCAPE:
-            quit_game = true;
-            break;
+
         case SDLK_h:
-            heads_up_display = true;
-            printf("hud\n");
+            hud_enabled = hud_enabled ? 0 : 1;
+            break;
+        case SDLK_ESCAPE:
+            quit = 1;
             break;
         default:
             break;
@@ -161,75 +156,110 @@ auto player_update_physics(L& X, R& Xdot)
 
 //////////////////////////////////////////////////////////////////////////////
 int tests();
-#include "kiss_sdl.h"
+#include "devhud.h"
 
 void button_event(kiss_button* button, SDL_Event* e, int* draw, int* quit)
 {
     if (kiss_button_event(button, e, draw))
+    {
+        printf("button event\n");
         *quit = 1;
+    }
 }
+
+
+struct GameLoop {
+    int32 start_frame, end_frame, time_taken, delay_time;
+    float fps;
+
+    void start()
+    {
+        start_frame = SDL_GetTicks();
+    }
+
+    void end()
+    {
+        end_frame  = SDL_GetTicks();
+        time_taken = end_frame - start_frame;
+
+        if (time_taken < 33)
+        {
+            delay_time = 33 - time_taken;
+        }
+        else
+        {
+            printf("WARNING FRAME TOOK LONGER THAN 33ms");
+            delay_time = 0;
+        }
+
+        fps = 1000.0 / float(time_taken + delay_time);
+    }
+
+    void delay()
+    {
+        SDL_Delay(delay_time);
+    }
+};
 
 
 int main()
 {
-
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
-    kiss_window   window;
-    kiss_label    label  = {0};
-    kiss_button   button = {0};
-    char          message[KISS_MAX_LENGTH];
-    int           draw, quit;
-    quit = 0;
-    draw = 1;
+    kiss_label    label = {0};
+    int           draw, quit, hud_enabled;
+    quit        = 0;
+    draw        = 1;
+    hud_enabled = 0;
+    GameLoop game_loop{0};
 
     kiss_array_new(&objects);
-    renderer = kiss_init("Hello kiss_sdl", &objects, 640, 320);
-    if (!renderer)
+
+    std::string window_title("Hello kiss_sdl");
+    renderer = kiss_init(window_title.c_str(),
+                         &objects,
+                         640,
+                         320);
+
+    if (renderer == nullptr)
     {
-        return 1;
+        printf("Renderer could not be created! SDL_Error: %s\n",
+               SDL_GetError());
+        return -1;
     }
 
-    kiss_window_new(&window, NULL, 0, 0, 0, kiss_screen_width, kiss_screen_height);
-    window.bg = {0xff, 0xff, 0xff, 0x70};
-
-    strcpy(message, "Hello World!");
-
-    kiss_label_new(&label,
-                   &window,
-                   message,
-                   (window.rect.w / 2) - strlen(message) * kiss_textfont.advance / 2,
-                   (window.rect.h / 2) - (kiss_textfont.fontheight + 2 * kiss_normal.h) / 2);
-    label.textcolor.r = 255;
-    kiss_button_new(&button,
-                    &window,
-                    "OK",
-                    (window.rect.w / 2) - kiss_normal.w / 2,
-                    label.rect.y + kiss_textfont.fontheight + kiss_normal.h);
-    window.visible = 1;
-
-    auto* hud = SDL_CreateTexture(renderer,
-                                  SDL_PIXELFORMAT_ABGR8888,
-                                  SDL_TEXTUREACCESS_TARGET,
-                                  window.rect.w,
-                                  window.rect.h);
-    SDL_SetTextureBlendMode(hud, SDL_BLENDMODE_BLEND);
+    DevHud dev_hud;
+    auto*  dev_hud_texture = SDL_CreateTexture(renderer,
+                                              SDL_PIXELFORMAT_ABGR8888,
+                                              SDL_TEXTUREACCESS_TARGET,
+                                              kiss_screen_width,
+                                              kiss_screen_height);
+    SDL_SetTextureBlendMode(dev_hud_texture, SDL_BLENDMODE_BLEND);
 
     while (!quit)
     {
-        SDL_Delay(10);
+        game_loop.start();
+
         while (SDL_PollEvent(&e))
         {
             if (e.type == SDL_QUIT)
             {
                 quit = 1;
             }
-            kiss_window_event(&window, &e, &draw);
-            button_event(&button, &e, &draw, &quit);
-            handle_input(e);
+            kiss_window_event(&dev_hud.window, &e, &draw);
+            // button_event(&dev_hud.button, &e, &draw, &quit);
+            handle_input(e, quit, hud_enabled);
         }
 
+        // TODO: this doesn't do what you think it does.
+        // if (!draw)
+        // {
+        //     printf("Don't draw\n");
+        //     continue;
+        // }
+
+        // Render gameplay.
         {
             SDL_SetRenderTarget(renderer, nullptr);
             SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
@@ -240,20 +270,30 @@ int main()
             SDL_RenderFillRect(renderer, &box);
         }
 
-        SDL_SetRenderTarget(renderer, hud);
-        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
-        SDL_RenderClear(renderer);
-        if (heads_up_display)
+        // Render hud. This is a bit wasteful if the hud is not enabled
+        // however for not it is good to do so we can keep an eye on CPU usage.
         {
-            kiss_window_draw(&window, renderer);
-            kiss_label_draw(&label, renderer);
-            kiss_button_draw(&button, renderer);
+            dev_hud.update(game_loop.time_taken,
+                           game_loop.fps);
+            dev_hud.render(renderer, dev_hud_texture);
         }
 
-        SDL_SetRenderTarget(renderer, nullptr);
-        SDL_RenderCopy(renderer, hud, nullptr, nullptr);
-        SDL_RenderPresent(renderer);
+        // Copy textures from kiss to the screen.
+        {
+            if (hud_enabled)
+            {
+                SDL_RenderCopy(renderer,
+                               dev_hud_texture,
+                               &dev_hud.window.rect,
+                               &dev_hud.window.rect);
+            }
+
+            SDL_RenderPresent(renderer);
+        }
         draw = 0;
+
+        game_loop.end();
+        game_loop.delay();
     }
 
     kiss_clean(&objects);
@@ -309,6 +349,7 @@ int other()
 
     int start_frame, end_frame, time_taken, delay_time;
 
+    bool quit_game = true;
     while (!quit_game)
     {
         start_frame = SDL_GetTicks();
@@ -384,57 +425,6 @@ int other()
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-
-    return 0;
-}
-
-int tests()
-{
-    const auto               A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
-    const auto               B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
-    const linalg::Vectorf<2> v{{1, 2}};
-
-    // std::cout << "A: " << A;
-    // std::cout << "v: " << v;
-    // std::cout << "rvalue: " << linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
-
-    fmt::print("A: {0}\n", A);
-    fmt::print("v: {0}\n", v);
-    fmt::print("rvalue: {0}", linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}});
-
-
-    auto X = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
-    // fmt::print("rows {}  cols {}\n", X.rows(), X.cols());
-
-    // Check can access const matrices.
-    float x = A[0][0];
-
-    //A[0] = 2; // cc error, A is const.
-
-    {
-        auto C = A * B;
-        auto D = C * 2.f;
-        auto E = 2.f * C;
-        // E *= A; // currently undefined, ambiguous? do you point-wise or matrix mult?
-        D *= 2.f;
-
-        assert(A == A);
-
-        // fmt::print("{0}\n", A);
-    }
-
-    {
-        auto C = A + B;
-        auto D = C + 2.f;
-        auto E = 2.f + C;
-
-        E += E += A;
-        std::cout << C;
-        std::cout << D;
-        std::cout << E;
-        D += 2.f;
-        std::cout << D;
-    }
 
     return 0;
 }

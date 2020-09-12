@@ -1,19 +1,7 @@
+#include "fmt/core.h"
 #include "linalg/matrix.hpp"
 #include "meliorate/meliorate.h"
 
-
-void test_matrix_constructors()
-{
-    linalg::Matrixf<3, 2> A{
-        {{1.f, 2.f},
-         {3.f, 4.f},
-         {5.f, 6.f}}};
-    std::cout << A;
-    // prints:
-    // 1,2
-    // 3,4
-    // 5,6
-}
 
 /*
 void test_matrix_multiplication()
@@ -66,42 +54,49 @@ static void test_that_something_is_false()
     // code goes here.
 }
 
-
-int main()
-{
-    meliorate_stop_on_error = false;
-    return meliorate_run<std::exception>();
-}
 */
 
-/*
-#include <iostream>
-
-int main()
+int test_operators()
 {
-    const linalg::Matrixf<2, 2> A{{{1, 2}, {3, 4}}};
-    const linalg::Matrixf<2, 2> B{{{1, 2}, {3, 4}}};
+    const auto               A = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const auto               B = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    const linalg::Vectorf<2> v{{1, 2}};
 
-    // std::cout << linalg::is_matrix_type(1.1) << "\n";
+    // std::cout << "A: " << A;
+    // std::cout << "v: " << v;
+    // std::cout << "rvalue: " << linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
 
-    // static_assert(linalg::is_matrix<float>::value, "is not a matrix");
+    fmt::print("A: {0}\n", A);
+    fmt::print("v: {0}\n", v);
+    fmt::print("rvalue: {0}", linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}});
+
+
+    auto X = linalg::Matrixf<2, 2>{{{1, 2}, {3, 4}}};
+    // fmt::print("rows {}  cols {}\n", X.rows(), X.cols());
+
+    // Check can access const matrices.
+    float x = A[0][0];
+
+    //A[0] = 2; // cc error, A is const.
 
     {
         auto C = A * B;
         auto D = C * 2.f;
         auto E = 2.f * C;
-        D *= rtransf ...
-        std::cout << C;
-        std::cout << D;
-        std::cout << E;
+        // E *= A; // currently undefined, ambiguous? do you point-wise or matrix mult?
         D *= 2.f;
-        std::cout << D;
+
+        assert(A == A);
+
+        // fmt::print("{0}\n", A);
     }
 
     {
         auto C = A + B;
         auto D = C + 2.f;
         auto E = 2.f + C;
+
+        E += E += A;
         std::cout << C;
         std::cout << D;
         std::cout << E;
@@ -111,4 +106,9 @@ int main()
 
     return 0;
 }
-*/
+
+int main()
+{
+    meliorate_stop_on_error = false;
+    return meliorate_run<std::exception>();
+}

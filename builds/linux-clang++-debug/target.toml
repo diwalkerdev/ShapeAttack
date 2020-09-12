@@ -77,11 +77,11 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
     name = "shapeAttack"
     buildRule = "exe"
     defines = ["-DRESDIR=\\\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\\\""]
-    # flags = [
-    #     "-fsanitize=address",
-    #     "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
-    #     "-fsanitize=undefined",
-    # ]
+    flags = [
+        "-fsanitize=address",
+        "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
+        "-fsanitize=undefined",
+    ]
     # requires = ["fmt", "spdlog", "imgui"]
     requires = ["kissSDL"]
     outputName = "ShapeAttack"
