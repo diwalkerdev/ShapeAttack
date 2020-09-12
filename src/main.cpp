@@ -28,29 +28,33 @@ static constexpr int HALF_SCREEN_WIDTH  = SCREEN_WIDTH / 2;
 static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
 static float turn = 0;
-static bool  fire = false;
+
+struct GameEvents {
+    int                quit = 0;
+    int                hud  = 0;
+    int                l = 0, r = 0, u = 0, d = 0;
+    linalg::Vectorf<2> player_movement;
+};
 
 //////////////////////////////////////////////////////////////////////////////
 
-void handle_input(SDL_Event& event, int& quit, int& hud_enabled)
+void handle_input(SDL_Event& event, GameEvents& game_events)
 {
-    static int fire_debounce = 0;
-    fire                     = false;
-
-
     if (event.type == SDL_KEYUP)
     {
         switch (event.key.keysym.sym)
         {
         case SDLK_UP:
+            game_events.u = 0;
             break;
         case SDLK_DOWN:
+            game_events.d = 0;
             break;
         case SDLK_LEFT:
-            turn = 0;
+            game_events.l = 0;
             break;
         case SDLK_RIGHT:
-            turn = 0;
+            game_events.r = 0;
             break;
         case SDLK_LSHIFT:
             break;
@@ -65,41 +69,36 @@ void handle_input(SDL_Event& event, int& quit, int& hud_enabled)
         switch (event.key.keysym.sym)
         {
         case SDLK_UP:
+            game_events.u = 1;
             break;
         case SDLK_DOWN:
+            game_events.d = 1;
             break;
         case SDLK_LEFT:
-            turn = 1;
+            game_events.l = 1;
             break;
         case SDLK_RIGHT:
-            turn = -1;
+            game_events.r = 1;
             break;
         case SDLK_LSHIFT:
             break;
         case SDLK_SPACE:
-            if (fire_debounce == 0)
-            {
-                fire_debounce = 2;
-                fire          = true;
-            }
-
             break;
-
         case SDLK_h:
-            hud_enabled = hud_enabled ? 0 : 1;
+            game_events.hud = game_events.hud ? 0 : 1;
             break;
         case SDLK_ESCAPE:
-            quit = 1;
+            game_events.quit = 1;
             break;
         default:
             break;
         }
     }
 
-    if (fire_debounce > 0)
-    {
-        --fire_debounce;
-    }
+    float x_axis = -game_events.l + game_events.r;
+    float y_axis = -game_events.d + game_events.u;
+
+    game_events.player_movement = {{x_axis, y_axis}};
 }
 
 auto to_screen_y(float y) -> float
@@ -167,7 +166,7 @@ void button_event(kiss_button* button, SDL_Event* e, int* draw, int* quit)
 }
 
 
-struct GameLoop {
+struct GameLoopTimer {
     int32 start_frame, end_frame, time_taken, delay_time;
     float fps;
 
@@ -237,11 +236,9 @@ int main()
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
-    int           draw, quit, hud_enabled;
-    quit        = 0;
-    draw        = 1;
-    hud_enabled = 0;
-    GameLoop game_loop{0};
+    GameEvents    game_events;
+    GameLoopTimer game_loop{0};
+    int           draw;
 
     std::string window_title("Hello kiss_sdl");
     kiss_array_new(&objects);
@@ -268,7 +265,7 @@ int main()
                                               kiss_screen_height);
     SDL_SetTextureBlendMode(dev_hud_texture, SDL_BLENDMODE_BLEND);
 
-    while (!quit)
+    while (!game_events.quit)
     {
         game_loop.start();
 
@@ -276,19 +273,12 @@ int main()
         {
             if (e.type == SDL_QUIT)
             {
-                quit = 1;
+                game_events.quit = 1;
             }
             kiss_window_event(&dev_hud.window, &e, &draw);
             // button_event(&dev_hud.button, &e, &draw, &quit);
-            handle_input(e, quit, hud_enabled);
+            handle_input(e, game_events);
         }
-
-        // TODO: this doesn't do what you think it does.
-        // if (!draw)
-        // {
-        //     printf("Don't draw\n");
-        //     continue;
-        // }
 
         // Render gameplay.
         {
@@ -311,13 +301,14 @@ int main()
         // however for not it is good to do so we can keep an eye on CPU usage.
         {
             dev_hud.update(game_loop.time_taken,
-                           game_loop.fps);
+                           game_loop.fps,
+                           game_events.player_movement);
             dev_hud.render(renderer, dev_hud_texture);
         }
 
         // Copy textures from kiss to the screen.
         {
-            if (hud_enabled)
+            if (game_events.hud)
             {
                 SDL_RenderCopy(renderer,
                                dev_hud_texture,
@@ -327,141 +318,10 @@ int main()
 
             SDL_RenderPresent(renderer);
         }
-        draw = 0;
 
         game_loop.end();
         game_loop.delay();
     }
 
     kiss_clean(&objects);
-}
-
-int other()
-{
-    srand(time(nullptr));
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        printf("Failed to initialize.");
-        return -1;
-    }
-
-    // Create window
-    auto* window = SDL_CreateWindow("SDL Tutorial",
-                                    SDL_WINDOWPOS_UNDEFINED,
-                                    SDL_WINDOWPOS_UNDEFINED,
-                                    SCREEN_WIDTH,
-                                    SCREEN_HEIGHT,
-                                    SDL_WINDOW_SHOWN);
-
-    if (window == nullptr)
-    {
-        printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-        return -1;
-    }
-
-    // Create renderer
-    auto* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr)
-    {
-        printf("Renderer could not be created! SDL_Error: %s\n",
-               SDL_GetError());
-        return -1;
-    }
-
-    // Init game objects
-    SDL_Rect background_rect{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-
-    auto player = Shape<3>(20, HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT);
-
-    std::array<Bullet, 3> bullets;
-    for (auto& bullet : bullets)
-    {
-        bullet = Bullet(4);
-    }
-    int bindex = 0;
-
-    linalg::Vectorf<2> X{{M_PI_2, 0}};
-    linalg::Vectorf<2> Xdot{{0, 0}};
-
-    int start_frame, end_frame, time_taken, delay_time;
-
-    bool quit_game = true;
-    while (!quit_game)
-    {
-        start_frame = SDL_GetTicks();
-        // handle_input();
-
-        // Clear the screen
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        SDL_RenderFillRect(renderer, &background_rect);
-
-        // Update the player.
-        {
-            float theta  = player_update_physics(X, Xdot);
-            auto  points = player.data * rtransf(theta, player.x, player.y);
-            player.theta = theta;
-
-            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-            draw(renderer, points);
-        }
-
-        // update the bullet.
-        {
-            if (fire)
-            {
-                if (bindex < 3)
-                {
-                    auto& bullet = bullets[bindex];
-                    bullet.fire(player.theta, {{HALF_SCREEN_WIDTH, HALF_SCREEN_HEIGHT}});
-                    bindex += 1;
-                }
-                else
-                {
-                    // spdlog::info("No more bullets.");
-                }
-            }
-        }
-
-        assert(bindex <= 3);
-        for (int i = 0; i < bindex; ++i)
-        {
-            // spdlog::info("i: {0}  bindex: {1}", i, bindex);
-            auto& bullet = bullets[i];
-            auto  points = bullet.update();
-            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-            draw(renderer, points);
-
-            auto is_active = bullet.check_collisions();
-            if (!is_active)
-            {
-                bullet = bullets[bindex - 1];
-                bindex -= 1;
-            }
-        };
-
-        end_frame  = SDL_GetTicks();
-        time_taken = end_frame - start_frame;
-
-        delay_time = 0;
-        if (time_taken < 33)
-        {
-            delay_time = 33 - time_taken;
-        }
-        else
-        {
-            printf("WARNING FRAME TOOK LONGER THAN 33ms");
-        }
-
-        SDL_Delay(delay_time);
-
-        // Update the screen with rendering actions
-        SDL_RenderPresent(renderer);
-    }
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return 0;
 }
