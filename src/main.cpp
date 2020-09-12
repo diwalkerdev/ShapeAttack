@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "devhud.h"
 #include "fmt/core.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
@@ -155,8 +156,6 @@ auto player_update_physics(L& X, R& Xdot)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-int tests();
-#include "devhud.h"
 
 void button_event(kiss_button* button, SDL_Event* e, int* draw, int* quit)
 {
@@ -201,22 +200,51 @@ struct GameLoop {
     }
 };
 
+SDL_Texture* load_texture(SDL_Renderer* renderer,
+                          std::string   path)
+{
+    //The final texture
+    SDL_Texture* new_texture = NULL;
+
+    //Load image at specified path
+    SDL_Surface* loaded_surface = IMG_Load(path.c_str());
+    if (loaded_surface == NULL)
+    {
+        printf("Unable to load image %s! SDL_image Error: %s\n",
+               path.c_str(),
+               IMG_GetError());
+        exit(-1);
+    }
+
+    //Create texture from surface pixels
+    new_texture = SDL_CreateTextureFromSurface(renderer, loaded_surface);
+    if (new_texture == NULL)
+    {
+        printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
+    }
+
+    printf("Loaded %s\n", path.c_str());
+
+    //Get rid of old loaded surface
+    SDL_FreeSurface(loaded_surface);
+
+    return new_texture;
+}
+
 
 int main()
 {
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
-    kiss_label    label = {0};
     int           draw, quit, hud_enabled;
     quit        = 0;
     draw        = 1;
     hud_enabled = 0;
     GameLoop game_loop{0};
 
-    kiss_array_new(&objects);
-
     std::string window_title("Hello kiss_sdl");
+    kiss_array_new(&objects);
     renderer = kiss_init(window_title.c_str(),
                          &objects,
                          640,
@@ -228,6 +256,9 @@ int main()
                SDL_GetError());
         return -1;
     }
+
+    auto* player_texture = load_texture(renderer,
+                                        "/home/dwalker0044/Projects/ShapeAttack/res/player.png");
 
     DevHud dev_hud;
     auto*  dev_hud_texture = SDL_CreateTexture(renderer,
@@ -268,6 +299,12 @@ int main()
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
             SDL_Rect box{0, 0, 50, 50};
             SDL_RenderFillRect(renderer, &box);
+
+            SDL_Rect pbox{0, 0, 80, 80};
+            SDL_RenderCopy(renderer,
+                           player_texture,
+                           &pbox,
+                           &pbox);
         }
 
         // Render hud. This is a bit wasteful if the hud is not enabled
