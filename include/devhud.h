@@ -1,3 +1,6 @@
+#ifndef DEV_HUD_H
+#define DEV_HUD_H
+
 #include "gameevents.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
@@ -180,3 +183,5 @@ struct DevHud {
         SDL_SetRenderTarget(renderer, nullptr);
     }
 };
+
+#endif

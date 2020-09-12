@@ -4,8 +4,9 @@
 #include <time.h>
 
 #include "devhud.h"
-#include "gameevents.h"
 #include "fmt/core.h"
+#include "gameevents.h"
+#include "gamehud.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
@@ -29,7 +30,6 @@ static constexpr int HALF_SCREEN_WIDTH  = SCREEN_WIDTH / 2;
 static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
 static float turn = 0;
-
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -100,19 +100,21 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         }
     }
 
-    float x_axis = game_events.r - game_events.l;
-    float y_axis = game_events.u - game_events.d;
-
-    if (x_axis != 0 && y_axis != 0)
     {
-        float norm = std::sqrt((x_axis * x_axis) + (y_axis * y_axis));
-        x_axis /= norm;
-        y_axis /= norm;
-    }
+        float x_axis = game_events.r - game_events.l;
+        float y_axis = game_events.u - game_events.d;
 
-    game_events.player_movement = {
-        {{0.f, 0.f},
-         {x_axis, y_axis}}};
+        if (x_axis != 0 && y_axis != 0)
+        {
+            float norm = std::sqrt((x_axis * x_axis) + (y_axis * y_axis));
+            x_axis /= norm;
+            y_axis /= norm;
+        }
+
+        game_events.player_movement = {
+            {{0.f, 0.f},
+             {x_axis, y_axis}}};
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -324,6 +326,14 @@ int main()
                                               kiss_screen_height);
     SDL_SetTextureBlendMode(dev_hud_texture, SDL_BLENDMODE_BLEND);
 
+    GameHud game_hud;
+    auto*   game_hud_texture = SDL_CreateTexture(renderer,
+                                               SDL_PIXELFORMAT_ABGR8888,
+                                               SDL_TEXTUREACCESS_TARGET,
+                                               kiss_screen_width,
+                                               kiss_screen_height);
+    SDL_SetTextureBlendMode(game_hud_texture, SDL_BLENDMODE_BLEND);
+
     while (!game_events.quit)
     {
         game_loop.start();
@@ -338,6 +348,7 @@ int main()
             // button_event(&dev_hud.button, &e, &draw, &quit);
             handle_input(e, game_events);
             dev_hud.handle_events(&e, &draw, game_events);
+            game_hud.handle_events(&e, &draw, game_events);
         }
 
         // Update gameplay.
@@ -365,6 +376,11 @@ int main()
             }
         }
 
+        {
+            game_hud.update(game_loop.time_taken);
+            game_hud.render(renderer, game_hud_texture);
+        }
+
         // Render hud. This is a bit wasteful if the hud is not enabled
         // however for not it is good to do so we can keep an eye on CPU usage.
         {
@@ -376,6 +392,11 @@ int main()
 
         // Copy textures from kiss to the screen.
         {
+            SDL_RenderCopy(renderer,
+                           game_hud_texture,
+                           &game_hud.window.rect,
+                           &game_hud.window.rect);
+
             if (game_events.hud)
             {
                 SDL_RenderCopy(renderer,
