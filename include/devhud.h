@@ -91,7 +91,9 @@ struct DevHud {
         //                 labels[2].rect.y + label_text_height);
     }
 
-    void update(int time_taken, float fps, linalg::Vectorf<2>& v)
+
+    // TODO: Should take the structs not individual parameters.
+    void update(int time_taken, float fps, linalg::Matrixf<2, 2>& v)
     {
         auto time_taken_text = std::to_string(time_taken);
         kiss_string_copy(labels[1].text,
@@ -105,7 +107,7 @@ struct DevHud {
                          fps_text.c_str(),
                          NULL);
 
-        auto input_text = std::to_string(v[0]) + " " + std::to_string(v[1]);
+        auto input_text = std::to_string(v[1][0]) + " " + std::to_string(v[1][1]);
         kiss_string_copy(labels[5].text,
                          KISS_MAX_LABEL,
                          input_text.c_str(),

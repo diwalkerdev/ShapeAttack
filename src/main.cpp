@@ -30,13 +30,22 @@ static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 static float turn = 0;
 
 struct GameEvents {
-    int                quit = 0;
-    int                hud  = 0;
-    int                l = 0, r = 0, u = 0, d = 0;
-    linalg::Vectorf<2> player_movement;
+    int                   quit = 0;
+    int                   hud  = 0;
+    int                   l = 0, r = 0, u = 0, d = 0;
+    linalg::Matrixf<2, 2> player_movement = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
+auto to_screen_y(float y) -> float
+{
+    return SCREEN_HEIGHT - y;
+}
+
+auto to_screen_y(int y) -> int
+{
+    return SCREEN_HEIGHT - y;
+}
 
 void handle_input(SDL_Event& event, GameEvents& game_events)
 {
@@ -95,21 +104,69 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         }
     }
 
-    float x_axis = -game_events.l + game_events.r;
-    float y_axis = -game_events.d + game_events.u;
+    float x_axis = game_events.r - game_events.l;
+    float y_axis = game_events.u - game_events.d;
 
-    game_events.player_movement = {{x_axis, y_axis}};
+    game_events.player_movement = {
+        {{0.f, 0.f},
+         {x_axis, y_axis}}};
 }
 
-auto to_screen_y(float y) -> float
+//////////////////////////////////////////////////////////////////////////////
+
+struct Entity {
+    SDL_Texture* texture;
+
+    // State space representation.
+    linalg::Matrixf<2, 2> X; // position, velocity.
+    linalg::Matrixf<2, 2> Xdot; // velocity, acceleration.
+    linalg::Matrixf<2, 2> Y;
+
+    linalg::Matrixf<2, 2> A;
+    linalg::Matrixf<2, 2> B;
+
+    float imass;
+    float k; // friction.
+
+    void update(float dt, linalg::Matrixf<2, 2> const& u)
+    {
+        std::cout << X << "\n";
+        std::cout << A * X << "\n";
+        std::cout << B * u << "\n";
+        std::cout << u << "\n";
+
+        std::cout << "\n";
+
+        Xdot = (X + (dt * A * X)) + ((dt * B) * u);
+        Y    = X;
+        X    = Xdot;
+    }
+};
+
+auto make_player()
 {
-    return SCREEN_HEIGHT - y;
+    Entity player{0};
+    float  mass  = 1.f;
+    player.imass = 1.f / mass;
+    player.k     = -mass * 0.7f;
+
+    player.X[0][0] = 100;
+    player.X[0][1] = 100;
+    player.X[1][0] = 0;
+    player.X[1][1] = 0;
+
+    player.A = {
+        {{+0.f, +1.f},
+         {+0.f, player.k}}};
+    player.A *= player.imass;
+
+    player.B = linalg::Matrixf<2, 2>::I();
+    player.B *= 20.f;
+
+    return player;
 }
 
-auto to_screen_y(int y) -> int
-{
-    return SCREEN_HEIGHT - y;
-}
+//////////////////////////////////////////////////////////////////////////////
 
 template <typename Tp, std::size_t M, std::size_t N>
 void draw(SDL_Renderer* renderer, linalg::Matrix<Tp, M, N>& mat)
@@ -124,34 +181,38 @@ void draw(SDL_Renderer* renderer, linalg::Matrix<Tp, M, N>& mat)
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+linalg::Matrixf<4, 3> vector_head{{{+0, +0, +1},
+                                   {-1, -1, +1},
+                                   {-1, +1, +1},
+                                   {+0, +0, +1}}};
 
-template <typename L, typename R>
-auto player_update_physics(L& X, R& Xdot)
+
+void draw_velocity_vector(SDL_Renderer* renderer, Entity const& entity)
 {
-    float u  = turn * 5;
-    float dt = 1 / 30.f;
-    float m  = 1.f;
-    // float k  = 0.2f;
-    float v = X[1];
-    float theta;
+    auto new_arrow = vector_head;
+    for (auto row : iter(new_arrow))
+    {
+        row[0] *= 10;
+        row[1] *= 10;
+    }
 
-    // 0.2 tanh(10x)+x^3/10;
-    linalg::Matrixf<2, 3> A{{{0, 1, 0},
-                             {0, (-powf(v, 2) / 10.f * m), -tanhf(10 * v)}}};
-    linalg::Matrixf<2, 1> B{{0, 1}};
+    float offset_x = entity.Y[0][0];
+    float offset_y = entity.Y[0][1];
 
-    linalg::Matrixf<3, 1> Xn{{X[0], X[1], 1}};
+    float theta       = std::atan2(-entity.Y[1][1], entity.Y[1][0]);
+    auto  trans_arrow = new_arrow * rtransf(theta, offset_x + entity.Y[1][0], offset_y + entity.Y[1][1]);
 
-    Xdot = (X + (dt * A * Xn)) + ((dt * B) * u);
+    linalg::Matrixf<2, 3> vector_tail;
+    vector_tail[0][0] = trans_arrow[0][0];
+    vector_tail[0][1] = trans_arrow[0][1];
+    vector_tail[0][2] = trans_arrow[0][2];
 
-    linalg::Matrixf<1, 2> C{{1, 0}};
-    linalg::Matrixf<1, 1> y = C * X;
+    vector_tail[1][0] = offset_x;
+    vector_tail[1][1] = offset_y;
+    vector_tail[1][2] = 1;
 
-    X     = Xdot;
-    theta = y[0];
-
-    return -theta;
+    draw(renderer, trans_arrow);
+    draw(renderer, vector_tail);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -233,19 +294,21 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
 int main()
 {
+    float         dt = 1.0 / 30;
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
     GameEvents    game_events;
     GameLoopTimer game_loop{0};
     int           draw;
+    Entity        player = make_player();
 
     std::string window_title("Hello kiss_sdl");
     kiss_array_new(&objects);
     renderer = kiss_init(window_title.c_str(),
                          &objects,
-                         640,
-                         320);
+                         SCREEN_WIDTH,
+                         SCREEN_HEIGHT);
 
     if (renderer == nullptr)
     {
@@ -280,6 +343,11 @@ int main()
             handle_input(e, game_events);
         }
 
+        // Update gameplay.
+        {
+            player.update(dt, game_events.player_movement);
+        }
+
         // Render gameplay.
         {
             SDL_SetRenderTarget(renderer, nullptr);
@@ -295,6 +363,8 @@ int main()
                            player_texture,
                            &pbox,
                            &pbox);
+
+            draw_velocity_vector(renderer, player);
         }
 
         // Render hud. This is a bit wasteful if the hud is not enabled
