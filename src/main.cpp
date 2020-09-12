@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "devhud.h"
+#include "gameevents.h"
 #include "fmt/core.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
@@ -29,12 +30,7 @@ static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
 static float turn = 0;
 
-struct GameEvents {
-    int                   quit = 0;
-    int                   hud  = 0;
-    int                   l = 0, r = 0, u = 0, d = 0;
-    linalg::Matrixf<2, 2> player_movement = 0;
-};
+
 
 //////////////////////////////////////////////////////////////////////////////
 auto to_screen_y(float y) -> float
@@ -107,6 +103,13 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
     float x_axis = game_events.r - game_events.l;
     float y_axis = game_events.u - game_events.d;
 
+    if (x_axis != 0 && y_axis != 0)
+    {
+        float norm = std::sqrt((x_axis * x_axis) + (y_axis * y_axis));
+        x_axis /= norm;
+        y_axis /= norm;
+    }
+
     game_events.player_movement = {
         {{0.f, 0.f},
          {x_axis, y_axis}}};
@@ -130,13 +133,6 @@ struct Entity {
 
     void update(float dt, linalg::Matrixf<2, 2> const& u)
     {
-        std::cout << X << "\n";
-        std::cout << A * X << "\n";
-        std::cout << B * u << "\n";
-        std::cout << u << "\n";
-
-        std::cout << "\n";
-
         Xdot = (X + (dt * A * X)) + ((dt * B) * u);
         Y    = X;
         X    = Xdot;
@@ -161,7 +157,7 @@ auto make_player()
     player.A *= player.imass;
 
     player.B = linalg::Matrixf<2, 2>::I();
-    player.B *= 20.f;
+    player.B *= 80.f;
 
     return player;
 }
@@ -341,6 +337,7 @@ int main()
             kiss_window_event(&dev_hud.window, &e, &draw);
             // button_event(&dev_hud.button, &e, &draw, &quit);
             handle_input(e, game_events);
+            dev_hud.handle_events(&e, &draw, game_events);
         }
 
         // Update gameplay.
@@ -355,16 +352,17 @@ int main()
             SDL_RenderClear(renderer);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
-            SDL_Rect box{0, 0, 50, 50};
-            SDL_RenderFillRect(renderer, &box);
-
-            SDL_Rect pbox{0, 0, 80, 80};
+            SDL_Rect src{0, 0, 80, 80};
+            SDL_Rect dst{(int)player.X[0][0], (int)to_screen_y(player.X[0][1] + 80), 80, 80};
             SDL_RenderCopy(renderer,
                            player_texture,
-                           &pbox,
-                           &pbox);
+                           &src,
+                           &dst);
 
-            draw_velocity_vector(renderer, player);
+            if (game_events.draw_vectors)
+            {
+                draw_velocity_vector(renderer, player);
+            }
         }
 
         // Render hud. This is a bit wasteful if the hud is not enabled

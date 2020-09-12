@@ -1,3 +1,4 @@
+#include "gameevents.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include <SDL2/SDL.h>
@@ -12,9 +13,22 @@ auto center_a_in_b(SDL_Rect* a, SDL_Rect* b)
 }
 
 struct DevHud {
-    kiss_window window    = {0};
-    kiss_label  labels[6] = {0};
-    // kiss_button button    = {0};
+    kiss_window       window         = {0};
+    kiss_label        labels[7]      = {0};
+    kiss_selectbutton enable_vectors = {0};
+
+    // In preperation that the positioning of the widgets could be refactored.
+    int border;
+    int x_offset;
+    int y_offset;
+    int x_center;
+    int y_center;
+
+    // Don't position the widgets when the are created. Have a seperate call that
+    // sets the position.
+    // void set_pos(int row, int col, WidgetLeft, WidgetRight)
+    // {
+    // }
 
     DevHud()
     {
@@ -32,7 +46,7 @@ struct DevHud {
 
         kiss_window_new(&window,
                         NULL,
-                        0,
+                        1,
                         window_rect.x,
                         window_rect.y,
                         window_rect.w,
@@ -40,55 +54,86 @@ struct DevHud {
         window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
         window.visible = 1;
 
-        int wx_center = window.rect.w / 2;
-        int wy_center = window.rect.h / 2;
+        border   = 4;
+        x_offset = window.rect.x + border;
+        y_offset = window.rect.y + border;
+
+        x_center = window.rect.x + window.rect.w / 2;
+        y_center = window.rect.y + window.rect.h / 2;
+
         // int label_text_width  = strlen(label_text.c_str()) * kiss_textfont.advance;
         int label_text_height = kiss_textfont.fontheight + (1 * kiss_normal.h);
         int row_height        = (label_text_height / 2);
 
         int index = 0;
         int row   = 0;
+
+        int x, y;
+
         kiss_label_new(&labels[index++],
                        &window,
                        "Time Taken (ms):",
-                       window.rect.x,
-                       window.rect.y + (row * row_height));
+                       x_offset,
+                       y_offset + (row * row_height));
 
         kiss_label_new(&labels[index++],
                        &window,
                        "",
-                       window.rect.x + 150,
-                       window.rect.y + (row++ * row_height));
+                       x_center + border,
+                       y_offset + (row++ * row_height));
+
+        // set_pos can then caclulate the height needed for the row.
+        // set_pos(0, labels[0], labels[1]);
 
         kiss_label_new(&labels[index++],
                        &window,
                        "FPS:",
-                       window.rect.x,
-                       window.rect.y + (row * row_height));
+                       x_offset,
+                       y_offset + (row * row_height));
 
         kiss_label_new(&labels[index++],
                        &window,
                        "",
-                       window.rect.x + 150,
-                       window.rect.y + (row++ * row_height));
+                       x_center + border,
+                       y_offset + (row++ * row_height));
 
         kiss_label_new(&labels[index++],
                        &window,
-                       "Input:",
-                       window.rect.x,
-                       window.rect.y + (row * row_height));
+                       "Keyboard Input:",
+                       x_offset,
+                       y_offset + (row * row_height));
 
         kiss_label_new(&labels[index++],
                        &window,
                        "",
-                       window.rect.x + 150,
-                       window.rect.y + (row++ * row_height));
+                       x_center + border,
+                       y_offset + (row++ * row_height));
+
+        kiss_label_new(&labels[index++],
+                       &window,
+                       "Draw Vectors:",
+                       x_offset,
+                       y_offset + (row * row_height));
+
+        kiss_selectbutton_new(&enable_vectors,
+                              &window,
+                              x_center + border,
+                              y_offset + (row++ * row_height));
 
         // kiss_button_new(&button,
         //                 &window,
         //                 "OK",
-        //                 window.rect.x + (wx_center - (kiss_normal.w / 2)),
+        //                 window.rect.x + (x_center - (kiss_normal.w / 2)),
         //                 labels[2].rect.y + label_text_height);
+    }
+
+    void handle_events(SDL_Event* event, int* draw, GameEvents& game_events)
+    {
+        if (kiss_selectbutton_event(&enable_vectors, event, draw))
+        {
+            game_events.draw_vectors = enable_vectors.selected;
+            printf("draw vs: %d\n", game_events.draw_vectors);
+        }
     }
 
 
@@ -128,6 +173,8 @@ struct DevHud {
         kiss_label_draw(&labels[3], renderer);
         kiss_label_draw(&labels[4], renderer);
         kiss_label_draw(&labels[5], renderer);
+        kiss_label_draw(&labels[6], renderer);
+        kiss_selectbutton_draw(&enable_vectors, renderer);
         // kiss_button_draw(&button, renderer);
 
         SDL_SetRenderTarget(renderer, nullptr);
