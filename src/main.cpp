@@ -141,6 +141,82 @@ struct Entity {
     }
 };
 
+struct EntityStatic {
+    SDL_Texture* texture;
+    SDL_Rect     rect;
+
+    linalg::Matrixf<1, 2> X;
+    linalg::Matrixf<1, 2> dim;
+
+    auto sdl_rect()
+    {
+        rect.x = X[0];
+        rect.y = X[1];
+        rect.w = dim[0];
+        rect.h = dim[1];
+        return &rect;
+    }
+
+    auto generate_points()
+    {
+        linalg::Matrixf<4, 2> result;
+
+        float x = X[0];
+        float y = X[1];
+        float w = dim[0];
+        float h = dim[1];
+        copy_from(result[0], {x + 0, y}); // tl
+        copy_from(result[1], {x + w, y}); // tr
+        copy_from(result[2], {x + w, y + h}); // br
+        copy_from(result[3], {x + 0, y + h}); // bl
+
+        return result;
+    }
+
+    auto minkowski_boundery(linalg::Vectorf<2> const& origin)
+    {
+        std::cout << "minkowski\n";
+        auto points = generate_points();
+        std::cout << points;
+
+        float x = origin[0];
+        float y = origin[1];
+        points[0][0] += x;
+        points[2][1] -= y;
+        points[3][0] += x;
+        points[3][1] -= y;
+
+        std::cout << points;
+
+        float w = points[1][0] - points[0][0];
+        float h = points[2][1] - points[0][1];
+        return SDL_Rect{
+            (int)points[0][0],
+            (int)points[0][1],
+            (int)w,
+            (int)h};
+    }
+};
+
+auto check_point_in_rect(int x, int y, SDL_Rect& rect)
+{
+    bool in_x = (x > rect.x && x < (rect.x + rect.w));
+    bool in_y = (y > rect.y && y < (rect.y + rect.h));
+    if (in_x && in_y)
+    {
+        printf("#");
+    }
+    printf("%d %d\n", in_x, in_y);
+}
+
+auto make_food()
+{
+    EntityStatic food;
+    food.X   = {{200.f, to_screen_y(100.f) - 40}};
+    food.dim = {{40, 40}};
+    return food;
+}
+
 auto make_player()
 {
     Entity player{0};
@@ -300,10 +376,11 @@ int main()
     GameLoopTimer game_loop{0};
     int           draw;
     Entity        player = make_player();
+    EntityStatic  food   = make_food();
+    // food.texture = ...
 
-    std::string window_title("Hello kiss_sdl");
     kiss_array_new(&objects);
-    renderer = kiss_init(window_title.c_str(),
+    renderer = kiss_init("Hello kiss_sdl",
                          &objects,
                          SCREEN_WIDTH,
                          SCREEN_HEIGHT);
@@ -315,8 +392,8 @@ int main()
         return -1;
     }
 
-    auto* player_texture = load_texture(renderer,
-                                        "/home/dwalker0044/Projects/ShapeAttack/res/player.png");
+    player.texture = load_texture(renderer,
+                                  "/home/dwalker0044/Projects/ShapeAttack/res/player.png");
 
     DevHud dev_hud;
     auto*  dev_hud_texture = SDL_CreateTexture(renderer,
@@ -366,10 +443,23 @@ int main()
             SDL_Rect src{0, 0, 80, 80};
             SDL_Rect dst{(int)player.X[0][0], (int)to_screen_y(player.X[0][1] + 80), 80, 80};
             SDL_RenderCopy(renderer,
-                           player_texture,
+                           player.texture,
                            &src,
                            &dst);
 
+            SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
+            SDL_RenderFillRect(renderer, food.sdl_rect());
+
+            linalg::Vectorf<2> origin{{-80, -80}};
+            auto               mb = food.minkowski_boundery(origin);
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
+            SDL_RenderDrawRect(renderer, &mb);
+
+            check_point_in_rect((int)player.X[0][0],
+                                to_screen_y((int)player.X[0][1]),
+                                mb);
+
+            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
             if (game_events.draw_vectors)
             {
                 draw_velocity_vector(renderer, player);
