@@ -5,6 +5,7 @@
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include <SDL2/SDL.h>
+#include <array>
 #include <string>
 
 auto center_a_in_b(SDL_Rect* a, SDL_Rect* b)
@@ -16,9 +17,9 @@ auto center_a_in_b(SDL_Rect* a, SDL_Rect* b)
 }
 
 struct DevHud {
-    kiss_window       window         = {0};
-    kiss_label        labels[7]      = {0};
-    kiss_selectbutton enable_vectors = {0};
+    kiss_window                      window = {0};
+    std::array<kiss_label, 8>        labels;
+    std::array<kiss_selectbutton, 2> select_buttons;
 
     // In preperation that the positioning of the widgets could be refactored.
     int border;
@@ -118,24 +119,32 @@ struct DevHud {
                        x_offset,
                        y_offset + (row * row_height));
 
-        kiss_selectbutton_new(&enable_vectors,
+        kiss_selectbutton_new(&select_buttons[0],
                               &window,
                               x_center + border,
                               y_offset + (row++ * row_height));
 
-        // kiss_button_new(&button,
-        //                 &window,
-        //                 "OK",
-        //                 window.rect.x + (x_center - (kiss_normal.w / 2)),
-        //                 labels[2].rect.y + label_text_height);
+        kiss_label_new(&labels[index++],
+                       &window,
+                       "Draw Minkowski:",
+                       x_offset,
+                       y_offset + (row * row_height));
+
+        kiss_selectbutton_new(&select_buttons[1],
+                              &window,
+                              x_center + border,
+                              y_offset + (row++ * row_height));
     }
 
     void handle_events(SDL_Event* event, int* draw, GameEvents& game_events)
     {
-        if (kiss_selectbutton_event(&enable_vectors, event, draw))
+        if (kiss_selectbutton_event(&select_buttons[0], event, draw))
         {
-            game_events.draw_vectors = enable_vectors.selected;
-            printf("draw vs: %d\n", game_events.draw_vectors);
+            game_events.draw_vectors = select_buttons[0].selected;
+        }
+        else if (kiss_selectbutton_event(&select_buttons[1], event, draw))
+        {
+            game_events.draw_minkowski = select_buttons[1].selected;
         }
     }
 
@@ -170,15 +179,14 @@ struct DevHud {
         SDL_RenderClear(renderer);
 
         kiss_window_draw(&window, renderer);
-        kiss_label_draw(&labels[0], renderer);
-        kiss_label_draw(&labels[1], renderer);
-        kiss_label_draw(&labels[2], renderer);
-        kiss_label_draw(&labels[3], renderer);
-        kiss_label_draw(&labels[4], renderer);
-        kiss_label_draw(&labels[5], renderer);
-        kiss_label_draw(&labels[6], renderer);
-        kiss_selectbutton_draw(&enable_vectors, renderer);
-        // kiss_button_draw(&button, renderer);
+        for (auto& label : labels)
+        {
+            kiss_label_draw(&label, renderer);
+        }
+        for (auto& button : select_buttons)
+        {
+            kiss_selectbutton_draw(&button, renderer);
+        }
 
         SDL_SetRenderTarget(renderer, nullptr);
     }

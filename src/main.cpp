@@ -450,14 +450,20 @@ int main()
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
             SDL_RenderFillRect(renderer, food.sdl_rect());
 
-            linalg::Vectorf<2> origin{{-80, -80}};
-            auto               mb = food.minkowski_boundery(origin);
-            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-            SDL_RenderDrawRect(renderer, &mb);
+            // Collision detection.
+            {
+                linalg::Vectorf<2> origin{{-80, -80}};
+                auto               mb = food.minkowski_boundery(origin);
+                check_point_in_rect((int)player.X[0][0],
+                                    to_screen_y((int)player.X[0][1]),
+                                    mb);
 
-            check_point_in_rect((int)player.X[0][0],
-                                to_screen_y((int)player.X[0][1]),
-                                mb);
+                if (game_events.draw_minkowski)
+                {
+                    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
+                    SDL_RenderDrawRect(renderer, &mb);
+                }
+            }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
             if (game_events.draw_vectors)
