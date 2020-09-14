@@ -196,6 +196,10 @@ struct EntityStatic {
 
 auto check_point_in_rect(float x, float y, SDL_FRect& rect)
 {
+    // TODO: would be good to make this consistent.
+    // Problem comes from drawing SDL_RenderDrawRect that expects things in screen coordinates, but we do everything in eclidian coordinates.
+    // y = to_screen_y(y);
+
     bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
     bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
 
@@ -352,7 +356,8 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
 int main()
 {
-    float         dt = 1.0 / 30;
+    constexpr float dt = 1.0 / 30;
+
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
@@ -413,9 +418,49 @@ int main()
 
         // Update gameplay.
         auto player_copy = player;
+        auto origin      = linalg::Vectorf<2>{{-80, -80}};
+        auto mb          = food.minkowski_boundery(origin);
 
+        constexpr float dt_step = dt / 4;
+
+        // TODO: different strategies? if collision first attempt then go smaller than dt_step?
+        // Could also try a binary search like thing.
+        for (int i = 0; i < 4; ++i)
         {
-            player.update(dt, game_events.player_movement);
+            player.update(dt_step, game_events.player_movement);
+
+            auto collided = check_point_in_rect(player.X[0][0],
+                                                to_screen_y(player.X[0][1]),
+                                                mb);
+
+            if (collided)
+            {
+                printf("Collided at iteration %d\n", i);
+
+                player = player_copy;
+
+                // Calculate the time remaining after the collision.
+                float dt_eval = dt - (dt_step * i);
+
+                // Apply the stop vector.
+                {
+                    linalg::Matrixf<2, 2> Binv{{{-0.0125, 0}, {0, -0.0125}}};
+                    linalg::Matrixf<2, 2> Xr{0.};
+                    copy_from(Xr[0], player.X[0]);
+
+                    auto Xtmp = player.X + (dt_eval * player.A * player.X);
+                    auto Rtmp = Binv * (1.f / dt_eval);
+                    auto u    = (Xtmp - Xr) * Rtmp;
+
+                    player.update(dt_eval, u);
+                }
+
+                break;
+            }
+            else
+            {
+                player_copy = player;
+            }
         }
 
         // Render gameplay.
@@ -425,45 +470,24 @@ int main()
             SDL_RenderClear(renderer);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
-            SDL_Rect src{0, 0, 80, 80};
-            SDL_Rect dst{(int)player.X[0][0], (int)to_screen_y(player.X[0][1] + 80), 80, 80};
-            SDL_RenderCopy(renderer,
-                           player.texture,
-                           &src,
-                           &dst);
+            SDL_Rect  src{0, 0, 80, 80};
+            SDL_FRect dst{player.X[0][0],
+                          to_screen_y(player.X[0][1] + 80.f),
+                          80.f,
+                          80.f};
+
+            SDL_RenderCopyF(renderer,
+                            player.texture,
+                            &src,
+                            &dst);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
             SDL_RenderFillRect(renderer, food.sdl_rect());
 
-            // Collision detection.
+            if (game_events.draw_minkowski)
             {
-                auto origin = linalg::Vectorf<2>{{-80, -80}};
-                auto mb     = food.minkowski_boundery(origin);
-
-                auto collided = check_point_in_rect(player.X[0][0],
-                                                    to_screen_y(player.X[0][1]),
-                                                    mb);
-
-                if (collided)
-                {
-                    player = player_copy;
-
-                    linalg::Matrixf<2, 2> Binv{{{0.0125, 0}, {0, 0.0125}}};
-
-                    linalg::Matrixf<2, 2> Xr{0.};
-                    copy_from(Xr[0], player.X[0]);
-                    auto Xtmp = player.X + (dt * player.A * player.X);
-                    auto Rtmp = Binv * (-1.f / dt);
-                    auto u    = (Xtmp - Xr) * Rtmp;
-
-                    player.update(dt, u);
-                }
-
-                if (game_events.draw_minkowski)
-                {
-                    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-                    SDL_RenderDrawRectF(renderer, &mb);
-                }
+                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
+                SDL_RenderDrawRectF(renderer, &mb);
             }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
