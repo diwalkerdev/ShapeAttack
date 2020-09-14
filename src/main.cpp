@@ -175,9 +175,7 @@ struct EntityStatic {
 
     auto minkowski_boundery(linalg::Vectorf<2> const& origin)
     {
-        std::cout << "minkowski\n";
         auto points = generate_points();
-        std::cout << points;
 
         float x = origin[0];
         float y = origin[1];
@@ -186,27 +184,23 @@ struct EntityStatic {
         points[3][0] += x;
         points[3][1] -= y;
 
-        std::cout << points;
-
         float w = points[1][0] - points[0][0];
         float h = points[2][1] - points[0][1];
-        return SDL_Rect{
-            (int)points[0][0],
-            (int)points[0][1],
-            (int)w,
-            (int)h};
+        return SDL_FRect{
+            points[0][0],
+            points[0][1],
+            w,
+            h};
     }
 };
 
-auto check_point_in_rect(int x, int y, SDL_Rect& rect)
+auto check_point_in_rect(float x, float y, SDL_FRect& rect)
 {
-    bool in_x = (x > rect.x && x < (rect.x + rect.w));
-    bool in_y = (y > rect.y && y < (rect.y + rect.h));
-    if (in_x && in_y)
-    {
-        printf("#");
-    }
-    printf("%d %d\n", in_x, in_y);
+    bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
+    bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
+
+    bool result{in_x && in_y};
+    return result;
 }
 
 auto make_food()
@@ -290,16 +284,6 @@ void draw_velocity_vector(SDL_Renderer* renderer, Entity const& entity)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-
-void button_event(kiss_button* button, SDL_Event* e, int* draw, int* quit)
-{
-    if (kiss_button_event(button, e, draw))
-    {
-        printf("button event\n");
-        *quit = 1;
-    }
-}
-
 
 struct GameLoopTimer {
     int32 start_frame, end_frame, time_taken, delay_time;
@@ -422,13 +406,14 @@ int main()
                 game_events.quit = 1;
             }
             kiss_window_event(&dev_hud.window, &e, &draw);
-            // button_event(&dev_hud.button, &e, &draw, &quit);
             handle_input(e, game_events);
             dev_hud.handle_events(&e, &draw, game_events);
             game_hud.handle_events(&e, &draw, game_events);
         }
 
         // Update gameplay.
+        auto player_copy = player;
+
         {
             player.update(dt, game_events.player_movement);
         }
@@ -452,16 +437,32 @@ int main()
 
             // Collision detection.
             {
-                linalg::Vectorf<2> origin{{-80, -80}};
-                auto               mb = food.minkowski_boundery(origin);
-                check_point_in_rect((int)player.X[0][0],
-                                    to_screen_y((int)player.X[0][1]),
-                                    mb);
+                auto origin = linalg::Vectorf<2>{{-80, -80}};
+                auto mb     = food.minkowski_boundery(origin);
+
+                auto collided = check_point_in_rect(player.X[0][0],
+                                                    to_screen_y(player.X[0][1]),
+                                                    mb);
+
+                if (collided)
+                {
+                    player = player_copy;
+
+                    linalg::Matrixf<2, 2> Binv{{{0.0125, 0}, {0, 0.0125}}};
+
+                    linalg::Matrixf<2, 2> Xr{0.};
+                    copy_from(Xr[0], player.X[0]);
+                    auto Xtmp = player.X + (dt * player.A * player.X);
+                    auto Rtmp = Binv * (-1.f / dt);
+                    auto u    = (Xtmp - Xr) * Rtmp;
+
+                    player.update(dt, u);
+                }
 
                 if (game_events.draw_minkowski)
                 {
                     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-                    SDL_RenderDrawRect(renderer, &mb);
+                    SDL_RenderDrawRectF(renderer, &mb);
                 }
             }
 
