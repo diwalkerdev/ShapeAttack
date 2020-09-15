@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "devhud.h"
+#include "entity.hpp"
 #include "fmt/core.h"
 #include "gameevents.h"
 #include "gamehud.h"
@@ -12,6 +13,8 @@
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
 #include "misc.hpp"
+#include "recthelper.hpp"
+#include "screen.h"
 #include "shapes.hpp"
 #include "typedefs.h"
 // #include "spdlog/spdlog.h"
@@ -24,24 +27,12 @@
 #include <string>
 #include <vector>
 
-static constexpr int SCREEN_WIDTH       = 640;
-static constexpr int SCREEN_HEIGHT      = 400;
-static constexpr int HALF_SCREEN_WIDTH  = SCREEN_WIDTH / 2;
-static constexpr int HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
 static float turn = 0;
 
 
 //////////////////////////////////////////////////////////////////////////////
-auto to_screen_y(float y) -> float
-{
-    return SCREEN_HEIGHT - y;
-}
 
-auto to_screen_y(int y) -> int
-{
-    return SCREEN_HEIGHT - y;
-}
 
 void handle_input(SDL_Event& event, GameEvents& game_events)
 {
@@ -119,106 +110,19 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
 
 //////////////////////////////////////////////////////////////////////////////
 
-struct Entity {
-    SDL_Texture* texture;
-
-    // State space representation.
-    linalg::Matrixf<2, 2> X; // position, velocity.
-    linalg::Matrixf<2, 2> Xdot; // velocity, acceleration.
-    linalg::Matrixf<2, 2> Y;
-
-    linalg::Matrixf<2, 2> A;
-    linalg::Matrixf<2, 2> B;
-
-    float imass;
-    float k; // friction.
-
-    void update(float dt, linalg::Matrixf<2, 2> const& u)
-    {
-        Xdot = (X + (dt * A * X)) + ((dt * B) * u);
-        Y    = X;
-        X    = Xdot;
-    }
-};
-
-struct EntityStatic {
-    SDL_Texture* texture;
-    SDL_Rect     rect;
-
-    linalg::Matrixf<1, 2> X;
-    linalg::Matrixf<1, 2> dim;
-
-    auto sdl_rect()
-    {
-        rect.x = X[0];
-        rect.y = X[1];
-        rect.w = dim[0];
-        rect.h = dim[1];
-        return &rect;
-    }
-
-    auto generate_points()
-    {
-        linalg::Matrixf<4, 2> result;
-
-        float x = X[0];
-        float y = X[1];
-        float w = dim[0];
-        float h = dim[1];
-        copy_from(result[0], {x + 0, y}); // tl
-        copy_from(result[1], {x + w, y}); // tr
-        copy_from(result[2], {x + w, y + h}); // br
-        copy_from(result[3], {x + 0, y + h}); // bl
-
-        return result;
-    }
-
-    auto minkowski_boundery(linalg::Vectorf<2> const& origin)
-    {
-        auto points = generate_points();
-
-        float x = origin[0];
-        float y = origin[1];
-        points[0][0] += x;
-        points[2][1] -= y;
-        points[3][0] += x;
-        points[3][1] -= y;
-
-        float w = points[1][0] - points[0][0];
-        float h = points[2][1] - points[0][1];
-        return SDL_FRect{
-            points[0][0],
-            points[0][1],
-            w,
-            h};
-    }
-};
-
-auto check_point_in_rect(float x, float y, SDL_FRect& rect)
-{
-    // TODO: would be good to make this consistent.
-    // Problem comes from drawing SDL_RenderDrawRect that expects things in screen coordinates, but we do everything in eclidian coordinates.
-    // y = to_screen_y(y);
-
-    bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
-    bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
-
-    bool result{in_x && in_y};
-    return result;
-}
-
 auto make_food()
 {
     EntityStatic food;
-    food.X   = {{200.f, to_screen_y(100.f) - 40}};
-    food.dim = {{40, 40}};
+    food.r = {200.f, to_screen_y(100.f) - 40, 40, 40};
     return food;
 }
 
 auto make_player()
 {
+    float mass = 1.f;
+
     Entity player{0};
-    float  mass  = 1.f;
+    player.dim   = {{80.f, 80.f}};
     player.imass = 1.f / mass;
     player.k     = -mass * 0.7f;
 
@@ -261,29 +165,30 @@ linalg::Matrixf<4, 3> vector_head{{{+0, +0, +1},
 
 void draw_velocity_vector(SDL_Renderer* renderer, Entity const& entity)
 {
-    auto new_arrow = vector_head;
-    for (auto row : iter(new_arrow))
+    auto arrow = vector_head;
+    // TODO use column operator.
+    for (auto row : iter(arrow))
     {
         row[0] *= 10;
         row[1] *= 10;
     }
 
-    float offset_x = entity.Y[0][0];
-    float offset_y = entity.Y[0][1];
+    float offset_x = entity.X[0][0];
+    float offset_y = entity.X[0][1];
 
     float theta       = std::atan2(-entity.Y[1][1], entity.Y[1][0]);
-    auto  trans_arrow = new_arrow * rtransf(theta, offset_x + entity.Y[1][0], offset_y + entity.Y[1][1]);
+    arrow = arrow * rtransf(theta, offset_x + entity.Y[1][0], offset_y + entity.Y[1][1]);
 
     linalg::Matrixf<2, 3> vector_tail;
-    vector_tail[0][0] = trans_arrow[0][0];
-    vector_tail[0][1] = trans_arrow[0][1];
-    vector_tail[0][2] = trans_arrow[0][2];
+    vector_tail[0][0] = arrow[0][0];
+    vector_tail[0][1] = arrow[0][1];
+    vector_tail[0][2] = arrow[0][2];
 
     vector_tail[1][0] = offset_x;
     vector_tail[1][1] = offset_y;
     vector_tail[1][2] = 1;
 
-    draw(renderer, trans_arrow);
+    draw(renderer, arrow);
     draw(renderer, vector_tail);
 }
 
@@ -419,7 +324,7 @@ int main()
         // Update gameplay.
         auto player_copy = player;
         auto origin      = linalg::Vectorf<2>{{-80, -80}};
-        auto mb          = food.minkowski_boundery(origin);
+        auto boundary    = minkowski_boundery(food, origin);
 
         constexpr float dt_step = dt / 4;
 
@@ -429,15 +334,21 @@ int main()
         {
             player.update(dt_step, game_events.player_movement);
 
-            auto collided = check_point_in_rect(player.X[0][0],
-                                                to_screen_y(player.X[0][1]),
-                                                mb);
+            auto collided = is_point_in_rect(player.X[0][0],
+                                             to_screen_y(player.X[0][1]),
+                                             boundary);
+
 
             if (collided)
             {
                 printf("Collided at iteration %d\n", i);
 
+                // Go back to a position where the player is hasn't collided with the object.
                 player = player_copy;
+
+                auto c = sdl_rect_center(player);
+                auto r = sdl_rect_center(boundary);
+
 
                 // Calculate the time remaining after the collision.
                 float dt_eval = dt - (dt_step * i);
@@ -470,11 +381,12 @@ int main()
             SDL_RenderClear(renderer);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
-            SDL_Rect  src{0, 0, 80, 80};
-            SDL_FRect dst{player.X[0][0],
-                          to_screen_y(player.X[0][1] + 80.f),
-                          80.f,
-                          80.f};
+            SDL_Rect  src{0, 0, (int)player.dim[0], (int)player.dim[1]};
+            SDL_FRect dst = sdl_rect(player);
+            // {player.X[0][0],
+            //  to_screen_y(player.X[0][1] + 80.f),
+            //  80.f,
+            //  80.f};
 
             SDL_RenderCopyF(renderer,
                             player.texture,
@@ -482,12 +394,12 @@ int main()
                             &dst);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
-            SDL_RenderFillRect(renderer, food.sdl_rect());
+            SDL_RenderFillRectF(renderer, &food.r);
 
             if (game_events.draw_minkowski)
             {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-                SDL_RenderDrawRectF(renderer, &mb);
+                SDL_RenderDrawRectF(renderer, &boundary);
             }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
