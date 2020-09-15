@@ -113,7 +113,7 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
 auto make_food()
 {
     EntityStatic food;
-    food.r = {200.f, to_screen_y(100.f) - 40, 40, 40};
+    food.r = {200.f, 100.f, 40, 40};
     return food;
 }
 
@@ -163,7 +163,7 @@ linalg::Matrixf<4, 3> vector_head{{{+0, +0, +1},
                                    {+0, +0, +1}}};
 
 
-void draw_velocity_vector(SDL_Renderer* renderer, Entity const& entity)
+void draw_velocity_vector(SDL_Renderer* renderer, float px, float py, float vx, float vy)
 {
     auto arrow = vector_head;
     // TODO use column operator.
@@ -173,19 +173,18 @@ void draw_velocity_vector(SDL_Renderer* renderer, Entity const& entity)
         row[1] *= 10;
     }
 
-    float offset_x = entity.X[0][0];
-    float offset_y = entity.X[0][1];
+    float theta = std::atan2(-vy, vx);
 
-    float theta       = std::atan2(-entity.Y[1][1], entity.Y[1][0]);
-    arrow = arrow * rtransf(theta, offset_x + entity.Y[1][0], offset_y + entity.Y[1][1]);
+    // TODO *=
+    arrow = arrow * rtransf(theta, px + vx, py + vy);
 
     linalg::Matrixf<2, 3> vector_tail;
     vector_tail[0][0] = arrow[0][0];
     vector_tail[0][1] = arrow[0][1];
     vector_tail[0][2] = arrow[0][2];
 
-    vector_tail[1][0] = offset_x;
-    vector_tail[1][1] = offset_y;
+    vector_tail[1][0] = px;
+    vector_tail[1][1] = py;
     vector_tail[1][2] = 1;
 
     draw(renderer, arrow);
@@ -330,13 +329,18 @@ int main()
 
         // TODO: different strategies? if collision first attempt then go smaller than dt_step?
         // Could also try a binary search like thing.
+
+        linalg::Vectorf<2> c, r, p;
+
+        bool collided;
+
         for (int i = 0; i < 4; ++i)
         {
             player.update(dt_step, game_events.player_movement);
 
-            auto collided = is_point_in_rect(player.X[0][0],
-                                             to_screen_y(player.X[0][1]),
-                                             boundary);
+            collided = is_point_in_rect(player.X[0][0],
+                                        player.X[0][1],
+                                        boundary);
 
 
             if (collided)
@@ -346,23 +350,60 @@ int main()
                 // Go back to a position where the player is hasn't collided with the object.
                 player = player_copy;
 
-                auto c = sdl_rect_center(player);
-                auto r = sdl_rect_center(boundary);
+                linalg::Matrixf<2, 1> ux{{1.f, 0.f}};
+                linalg::Matrixf<2, 1> uy{{0.f, 1.f}};
 
+                auto  uxdot = T(ux) * ux;
+                auto  uydot = T(uy) * uy;
+                float ex    = uxdot[0] * (food.r.w * 0.5);
+                float ey    = uydot[0] * (food.r.h * 0.5);
+
+                c = sdl_rect_center(player);
+                r = sdl_rect_center(food.r);
+
+                auto d = T(c - r);
+
+                float dx = (d * ux)[0];
+                float dy = (d * uy)[0];
+
+                if (dx > ex)
+                {
+                    dx = ex;
+                }
+                if (dx < -ex)
+                {
+                    dx = -ex;
+                }
+
+                if (dy > ey)
+                {
+                    dy = ey;
+                }
+                if (dy < -ey)
+                {
+                    dy = -ey;
+                }
+
+                p = r + (dx * ux) + (dy * uy);
+
+                auto c_norm = c - p;
 
                 // Calculate the time remaining after the collision.
                 float dt_eval = dt - (dt_step * i);
 
                 // Apply the stop vector.
                 {
-                    linalg::Matrixf<2, 2> Binv{{{-0.0125, 0}, {0, -0.0125}}};
-                    linalg::Matrixf<2, 2> Xr{0.};
-                    copy_from(Xr[0], player.X[0]);
+                    // linalg::Matrixf<2, 2> Binv{{{-0.0125, 0}, {0, -0.0125}}};
+                    // linalg::Matrixf<2, 2> Xr{0.};
+                    // copy_from(Xr[0], player.X[0]);
 
-                    auto Xtmp = player.X + (dt_eval * player.A * player.X);
-                    auto Rtmp = Binv * (1.f / dt_eval);
-                    auto u    = (Xtmp - Xr) * Rtmp;
+                    // auto Xtmp = player.X + (dt_eval * player.A * player.X);
+                    // auto Rtmp = Binv * (1.f / dt_eval);
+                    // auto u    = (Xtmp - Xr) * Rtmp;
 
+                    auto u  = game_events.player_movement;
+                    u[1][0] = c_norm[0];
+                    u[1][1] = c_norm[1];
                     player.update(dt_eval, u);
                 }
 
@@ -381,12 +422,9 @@ int main()
             SDL_RenderClear(renderer);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+
+            SDL_FRect dst = to_screen_rect(sdl_rect(player));
             SDL_Rect  src{0, 0, (int)player.dim[0], (int)player.dim[1]};
-            SDL_FRect dst = sdl_rect(player);
-            // {player.X[0][0],
-            //  to_screen_y(player.X[0][1] + 80.f),
-            //  80.f,
-            //  80.f};
 
             SDL_RenderCopyF(renderer,
                             player.texture,
@@ -394,18 +432,35 @@ int main()
                             &dst);
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
-            SDL_RenderFillRectF(renderer, &food.r);
+            SDL_FRect fdst = to_screen_rect(food.r);
+            SDL_RenderFillRectF(renderer, &fdst);
 
             if (game_events.draw_minkowski)
             {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-                SDL_RenderDrawRectF(renderer, &boundary);
+                auto dst = to_screen_rect(boundary);
+                SDL_RenderDrawRectF(renderer, &dst);
             }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
             if (game_events.draw_vectors)
             {
-                draw_velocity_vector(renderer, player);
+                draw_velocity_vector(renderer,
+                                     player.X[0][0],
+                                     player.X[0][1],
+                                     player.Y[1][0],
+                                     player.Y[1][1]);
+
+                if (collided)
+                {
+                    draw_velocity_vector(renderer,
+                                         r[0],
+                                         r[1],
+                                         p[0],
+                                         p[1]);
+                    std::cout << r;
+                    std::cout << p;
+                }
             }
         }
 

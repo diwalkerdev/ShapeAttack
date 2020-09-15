@@ -10,7 +10,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -22,7 +22,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -33,7 +33,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -44,7 +44,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -55,7 +55,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -66,7 +66,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -78,7 +78,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build $
@@ -96,7 +96,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples/libs/gl3w $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui/examples
-  flags = -std=c++20 -O1 -g
+  flags = -std=c++20 -O0 -g
   defines = -DSPDLOG_FMT_EXTERNAL -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 build libimgui.a: phony $

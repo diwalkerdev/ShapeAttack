@@ -7,7 +7,7 @@ compilerFrontend="gcc"
 
 flags = [
     "-std=c++20",
-    "-O1",
+    "-O0",
     "-g",
     # "-Wall"
 ]

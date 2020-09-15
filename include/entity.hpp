@@ -42,7 +42,7 @@ auto sdl_rect(Entity& entity)
     SDL_FRect rect;
 
     rect.x = entity.X[0][0];
-    rect.y = to_screen_y(entity.X[0][1]) - entity.dim[1];
+    rect.y = entity.X[0][1];
     rect.w = entity.dim[0];
     rect.h = entity.dim[1];
 
@@ -64,10 +64,6 @@ auto sdl_rect_center(Entity& entity)
 
 auto is_point_in_rect(float x, float y, SDL_FRect& rect)
 {
-    // TODO: would be good to make this consistent.
-    // Problem comes from drawing SDL_RenderDrawRect that expects things in screen coordinates, but we do everything in eclidian coordinates.
-    // y = to_screen_y(y);
-
     bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
     bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
 
@@ -83,10 +79,6 @@ auto generate_points(Tp&& entity)
     linalg::Matrixf<4, 2> result;
 
     auto r = sdl_rect(entity);
-    // float x = entity.X[0];
-    // float y = entity.X[1];
-    // float w = entity.dim[0];
-    // float h = entity.dim[1];
 
     copy_from(result[0], {r.x + 0.f, r.y}); // tl
     copy_from(result[1], {r.x + r.w, r.y}); // tr
@@ -106,9 +98,13 @@ auto minkowski_boundery(Tp&& entity, linalg::Vectorf<2> const& origin)
     float x = origin[0];
     float y = origin[1];
     points[0][0] += x;
-    points[2][1] -= y;
+    points[0][1] += y;
+    points[1][0] += 0.f;
+    points[1][1] += y;
+    points[2][0] += 0.f;
+    points[2][1] += 0.f;
     points[3][0] += x;
-    points[3][1] -= y;
+    points[3][1] += 0.f;
 
     float w = points[1][0] - points[0][0];
     float h = points[2][1] - points[0][1];
