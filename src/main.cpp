@@ -239,13 +239,21 @@ int main()
     Entity        player = make_player();
     auto          origin = linalg::Vectorf<2>{{-80, -80}};
 
-    constexpr int                          GameEntities = 2;
-    std::array<EntityStatic, GameEntities> game_entities{make_food(), make_wall()};
+    constexpr int GameEntities = 1;
+    constexpr int Walls        = 1;
 
-    std::array<SDL_FRect, GameEntities> minkowski_boundaries;
-    for (int i = 0; i < minkowski_boundaries.size(); ++i)
+    std::array<EntityStatic, GameEntities> game_entities{make_food()};
+    std::array<EntityStatic, Walls>        walls{make_wall()};
+
+    // TODO: This is error prone, as is it necessary to maintain the order of the boundaries with the wall.
+    std::array<SDL_FRect, GameEntities + Walls> minkowski_boundaries;
+    for (int i = 0; i < walls.size(); ++i)
     {
-        minkowski_boundaries[i] = minkowski_boundary(game_entities[i], origin);
+        minkowski_boundaries[i] = minkowski_boundary(walls[i], origin);
+    }
+    for (int i = 0; i < game_entities.size(); ++i)
+    {
+        minkowski_boundaries[i + walls.size()] = minkowski_boundary(game_entities[i], origin);
     }
 
     kiss_array_new(&objects);
@@ -311,12 +319,12 @@ int main()
         {
             player.update(dt_step, game_events.player_movement);
 
-            for (int entity_idx = 0;
-                 (entity_idx < GameEntities) && !collided;
-                 ++entity_idx)
+            for (int wall_idx = 0;
+                 (wall_idx < Walls) && !collided;
+                 ++wall_idx)
             {
-                auto& boundary = minkowski_boundaries[entity_idx];
-                auto& entity   = game_entities[entity_idx];
+                auto& boundary = minkowski_boundaries[wall_idx];
+                auto& entity   = walls[wall_idx];
 
                 {
                     linalg::Vectorf<2> c, r, p;
@@ -463,6 +471,13 @@ int main()
         {
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
             for (auto& entity : game_entities)
+            {
+                SDL_FRect fdst = to_screen_rect(entity.r);
+                SDL_RenderFillRectF(renderer, &fdst);
+            }
+
+            SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xff);
+            for (auto& entity : walls)
             {
                 SDL_FRect fdst = to_screen_rect(entity.r);
                 SDL_RenderFillRectF(renderer, &fdst);
