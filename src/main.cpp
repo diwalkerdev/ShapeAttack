@@ -113,32 +113,33 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
 auto make_food()
 {
     EntityStatic food;
-    food.r = {200.f, 100.f, 40, 40};
+    food.r           = {200.f, 100.f, 40.f, 40.f};
+    food.restitution = 1.f;
     return food;
 }
 
 auto make_player()
 {
-    float mass = 1.f;
+    constexpr float mass  = 1.f;
+    constexpr float imass = 1.f / mass;
+    constexpr float k     = 0.f * imass;
+    constexpr float b     = -3.f * imass; // friction coefficient
 
     Entity player{0};
-    player.dim   = {{80.f, 80.f}};
-    player.imass = 1.f / mass;
-    player.k     = -mass * 0.7f;
+    player.w           = 80.f;
+    player.h           = 80.f;
+    player.imass       = imass;
+    player.k           = k;
+    player.restitution = 0.5;
 
     player.X[0][0] = 100;
     player.X[0][1] = 100;
     player.X[1][0] = 0;
     player.X[1][1] = 0;
 
-    player.A = {
-        {{+0.f, +1.f},
-         {+0.f, player.k}}};
-    player.A *= player.imass;
-
+    player.A = {{{0.f, 1.f}, {k, b}}};
     player.B = linalg::Matrixf<2, 2>::I();
-    player.B *= 80.f;
-
+    player.B *= 500.f;
     return player;
 }
 
@@ -388,6 +389,23 @@ int main()
 
                 auto c_norm = c - p;
 
+                // c_norm is a vector between the two centroids. If we use for reflections then collisions
+                // at the edge of the object to reflect outwards at the angle of c_norm and not perpendicular
+                // which is what we want for collisions between two rectangles.
+                bool x_edge;
+                {
+                    float x1 = std::abs(p[0] - player.X[0][0]);
+                    float x2 = std::abs(p[0] - (player.X[0][0] + player.w));
+
+                    float y1 = std::abs(p[1] - player.X[0][1]);
+                    float y2 = std::abs(p[1] - (player.X[0][1] + player.h));
+
+                    float xmin = std::min(x1, x2);
+                    float ymin = std::min(y1, y2);
+
+                    x_edge = (xmin < ymin);
+                }
+
                 // Calculate the time remaining after the collision.
                 float dt_eval = dt - (dt_step * i);
 
@@ -400,11 +418,55 @@ int main()
                     // auto Xtmp = player.X + (dt_eval * player.A * player.X);
                     // auto Rtmp = Binv * (1.f / dt_eval);
                     // auto u    = (Xtmp - Xr) * Rtmp;
+                }
 
-                    auto u  = game_events.player_movement;
-                    u[1][0] = c_norm[0];
-                    u[1][1] = c_norm[1];
-                    player.update(dt_eval, u);
+
+                {
+                    float c_norm_x;
+                    float c_norm_y;
+
+                    float v_x;
+                    float v_y;
+
+                    // TODO write norm function.
+                    float norm   = std::sqrt((c_norm[0] * c_norm[0]) + (c_norm[1] * c_norm[1]));
+                    auto  v      = linalg::Vectorf<2>(player.X[1]);
+                    auto  v_norm = std::sqrt((v[0] * v[0]) + (v[1] * v[1]));
+
+                    float pv_x;
+                    float pv_y;
+
+                    // TODO: must be better way to refactor this.
+                    if (x_edge)
+                    {
+                        c_norm_x = ((T(ux) * c_norm) * (1.f / norm))[0];
+                        c_norm_y = 0.f;
+
+                        // So like above we should get the x and y part of the
+                        // velocity vector by taking the doc product with with
+                        // the basis vectors,
+                        v_x = c_norm_x * (T(ux) * (v * (1.f / v_norm)))[0];
+                        v_y = c_norm_y * (T(uy) * (v * (1.f / v_norm)))[0];
+
+                        // TODO: should compare restitutions and use the smallest one.
+                        pv_x = v_x * player.restitution;
+                        pv_y = 1.f;
+                    }
+                    else
+                    {
+                        c_norm_x = 0.f;
+                        c_norm_y = ((T(uy) * c_norm) * (1.f / norm))[0];
+
+                        v_x = c_norm_x * (T(ux) * (v * (1.f / v_norm)))[0];
+                        v_y = c_norm_y * (T(uy) * (v * (1.f / v_norm)))[0];
+
+                        pv_x = 1.f;
+                        pv_y = v_y * player.restitution;
+                    }
+
+                    player.X[1][0] *= pv_x;
+                    player.X[1][1] *= pv_y;
+                    player.update(dt_eval, game_events.player_movement);
                 }
 
                 break;
@@ -424,7 +486,7 @@ int main()
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
 
             SDL_FRect dst = to_screen_rect(sdl_rect(player));
-            SDL_Rect  src{0, 0, (int)player.dim[0], (int)player.dim[1]};
+            SDL_Rect  src{0, 0, (int)player.w, (int)player.h};
 
             SDL_RenderCopyF(renderer,
                             player.texture,

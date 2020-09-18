@@ -7,8 +7,8 @@
 #include <SDL2/SDL.h>
 
 struct Entity {
-    SDL_Texture*       texture;
-    linalg::Vectorf<2> dim;
+    SDL_Texture* texture;
+    float        w, h;
 
     // State space representation.
     linalg::Matrixf<2, 2> X; // position, velocity.
@@ -19,11 +19,12 @@ struct Entity {
     linalg::Matrixf<2, 2> B;
 
     float imass;
-    float k; // friction.
+    float k, b; // friction.
+    float restitution;
 
     void update(float dt, linalg::Matrixf<2, 2> const& u)
     {
-        Xdot = (X + (dt * A * X)) + ((dt * B) * u);
+        Xdot = (X + (dt * A * X)) + (dt * B * u);
         Y    = X;
         X    = Xdot;
     }
@@ -32,6 +33,7 @@ struct Entity {
 struct EntityStatic {
     SDL_Texture* texture;
     SDL_FRect    r;
+    float        restitution;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -43,8 +45,8 @@ auto sdl_rect(Entity& entity)
 
     rect.x = entity.X[0][0];
     rect.y = entity.X[0][1];
-    rect.w = entity.dim[0];
-    rect.h = entity.dim[1];
+    rect.w = entity.w;
+    rect.h = entity.h;
 
     return rect;
 }
