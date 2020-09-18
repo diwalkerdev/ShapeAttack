@@ -239,8 +239,8 @@ int main()
     Entity        player = make_player();
     auto          origin = linalg::Vectorf<2>{{-80, -80}};
 
-    constexpr int                          GameEntities = 1;
-    std::array<EntityStatic, GameEntities> game_entities{make_food() /*, make_wall()*/};
+    constexpr int                          GameEntities = 2;
+    std::array<EntityStatic, GameEntities> game_entities{make_food(), make_wall()};
 
     std::array<SDL_FRect, GameEntities> minkowski_boundaries;
     for (int i = 0; i < minkowski_boundaries.size(); ++i)
@@ -298,27 +298,32 @@ int main()
 
         // Update gameplay.
         auto player_copy = player;
+        bool collided    = false;
 
         // Collision detection loop.
         //
-        for (int loop_idx = 0; loop_idx < 4; ++loop_idx)
+        // TODO: different strategies? if collision first attempt then go smaller than dt_step?
+        // Could also try a binary search like thing.
+        // TODO: this doesn't handle colliding with several objects at once.
+        for (int loop_idx = 0;
+             (loop_idx < 4) && !collided;
+             ++loop_idx)
         {
             player.update(dt_step, game_events.player_movement);
 
-            for (int entity_idx = 0; entity_idx < GameEntities; ++entity_idx)
+            for (int entity_idx = 0;
+                 (entity_idx < GameEntities) && !collided;
+                 ++entity_idx)
             {
                 auto& boundary = minkowski_boundaries[entity_idx];
                 auto& entity   = game_entities[entity_idx];
 
                 {
-                    // TODO: different strategies? if collision first attempt then go smaller than dt_step?
-                    // Could also try a binary search like thing.
-
                     linalg::Vectorf<2> c, r, p;
 
-                    auto collided = is_point_in_rect(player.X[0][0],
-                                                     player.X[0][1],
-                                                     boundary);
+                    collided = is_point_in_rect(player.X[0][0],
+                                                player.X[0][1],
+                                                boundary);
 
                     if (!collided)
                     {
@@ -412,7 +417,7 @@ int main()
 
                                 // TODO: should compare restitutions and use the smallest one.
                                 pv_x = v_x * player.restitution;
-                                pv_y = 1.f; // allows gliding.
+                                pv_y = uydot; // allows gliding.
                             }
                             else
                             {
@@ -421,7 +426,7 @@ int main()
 
                                 auto v_y = (c_norm_y * (T(uy) * v_norm))[0];
 
-                                pv_x = 1.f; // allows gliding.
+                                pv_x = uxdot; // allows gliding.
                                 pv_y = v_y * player.restitution;
                             }
 
@@ -432,8 +437,6 @@ int main()
                             float dt_eval = dt - (dt_step * loop_idx);
                             player.update(dt_eval, game_events.player_movement);
                         }
-
-                        break;
                     } // if collision.
                 } // collision block.
             } // game entity loop.
