@@ -27,12 +27,7 @@
 #include <string>
 #include <vector>
 
-
-static float turn = 0;
-
-
 //////////////////////////////////////////////////////////////////////////////
-
 
 void handle_input(SDL_Event& event, GameEvents& game_events)
 {
@@ -106,41 +101,6 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
             {{0.f, 0.f},
              {x_axis, y_axis}}};
     }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-auto make_food()
-{
-    EntityStatic food;
-    food.r           = {200.f, 100.f, 40.f, 40.f};
-    food.restitution = 1.f;
-    return food;
-}
-
-auto make_player()
-{
-    constexpr float mass  = 1.f;
-    constexpr float imass = 1.f / mass;
-    constexpr float k     = 0.f * imass;
-    constexpr float b     = -3.f * imass; // friction coefficient
-
-    Entity player{0};
-    player.w           = 80.f;
-    player.h           = 80.f;
-    player.imass       = imass;
-    player.k           = k;
-    player.restitution = 0.5;
-
-    player.X[0][0] = 100;
-    player.X[0][1] = 100;
-    player.X[1][0] = 0;
-    player.X[1][1] = 0;
-
-    player.A = {{{0.f, 1.f}, {k, b}}};
-    player.B = linalg::Matrixf<2, 2>::I();
-    player.B *= 500.f;
-    return player;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -258,10 +218,17 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
     return new_texture;
 }
 
+void println(char const* message, float number)
+{
+    printf("%s", message);
+    printf(": %f\n", number);
+}
+
 
 int main()
 {
-    constexpr float dt = 1.0 / 30;
+    constexpr float dt      = 1.f / 30.f;
+    constexpr float dt_step = dt / 4.f;
 
     SDL_Renderer* renderer;
     SDL_Event     e;
@@ -270,8 +237,16 @@ int main()
     GameLoopTimer game_loop{0};
     int           draw;
     Entity        player = make_player();
-    EntityStatic  food   = make_food();
-    // food.texture = ...
+    auto          origin = linalg::Vectorf<2>{{-80, -80}};
+
+    constexpr int                          GameEntities = 1;
+    std::array<EntityStatic, GameEntities> game_entities{make_food() /*, make_wall()*/};
+
+    std::array<SDL_FRect, GameEntities> minkowski_boundaries;
+    for (int i = 0; i < minkowski_boundaries.size(); ++i)
+    {
+        minkowski_boundaries[i] = minkowski_boundary(game_entities[i], origin);
+    }
 
     kiss_array_new(&objects);
     renderer = kiss_init("Hello kiss_sdl",
@@ -323,161 +298,148 @@ int main()
 
         // Update gameplay.
         auto player_copy = player;
-        auto origin      = linalg::Vectorf<2>{{-80, -80}};
-        auto boundary    = minkowski_boundery(food, origin);
 
-        constexpr float dt_step = dt / 4;
-
-        // TODO: different strategies? if collision first attempt then go smaller than dt_step?
-        // Could also try a binary search like thing.
-
-        linalg::Vectorf<2> c, r, p;
-
-        bool collided;
-
-        for (int i = 0; i < 4; ++i)
+        // Collision detection loop.
+        //
+        for (int loop_idx = 0; loop_idx < 4; ++loop_idx)
         {
             player.update(dt_step, game_events.player_movement);
 
-            collided = is_point_in_rect(player.X[0][0],
-                                        player.X[0][1],
-                                        boundary);
-
-
-            if (collided)
+            for (int entity_idx = 0; entity_idx < GameEntities; ++entity_idx)
             {
-                printf("Collided at iteration %d\n", i);
-
-                // Go back to a position where the player is hasn't collided with the object.
-                player = player_copy;
-
-                linalg::Matrixf<2, 1> ux{{1.f, 0.f}};
-                linalg::Matrixf<2, 1> uy{{0.f, 1.f}};
-
-                auto  uxdot = T(ux) * ux;
-                auto  uydot = T(uy) * uy;
-                float ex    = uxdot[0] * (food.r.w * 0.5);
-                float ey    = uydot[0] * (food.r.h * 0.5);
-
-                c = sdl_rect_center(player);
-                r = sdl_rect_center(food.r);
-
-                auto d = T(c - r);
-
-                float dx = (d * ux)[0];
-                float dy = (d * uy)[0];
-
-                if (dx > ex)
-                {
-                    dx = ex;
-                }
-                if (dx < -ex)
-                {
-                    dx = -ex;
-                }
-
-                if (dy > ey)
-                {
-                    dy = ey;
-                }
-                if (dy < -ey)
-                {
-                    dy = -ey;
-                }
-
-                p = r + (dx * ux) + (dy * uy);
-
-                auto c_norm = c - p;
-
-                // c_norm is a vector between the two centroids. If we use for reflections then collisions
-                // at the edge of the object to reflect outwards at the angle of c_norm and not perpendicular
-                // which is what we want for collisions between two rectangles.
-                bool x_edge;
-                {
-                    float x1 = std::abs(p[0] - player.X[0][0]);
-                    float x2 = std::abs(p[0] - (player.X[0][0] + player.w));
-
-                    float y1 = std::abs(p[1] - player.X[0][1]);
-                    float y2 = std::abs(p[1] - (player.X[0][1] + player.h));
-
-                    float xmin = std::min(x1, x2);
-                    float ymin = std::min(y1, y2);
-
-                    x_edge = (xmin < ymin);
-                }
-
-                // Calculate the time remaining after the collision.
-                float dt_eval = dt - (dt_step * i);
-
-                // Apply the stop vector.
-                {
-                    // linalg::Matrixf<2, 2> Binv{{{-0.0125, 0}, {0, -0.0125}}};
-                    // linalg::Matrixf<2, 2> Xr{0.};
-                    // copy_from(Xr[0], player.X[0]);
-
-                    // auto Xtmp = player.X + (dt_eval * player.A * player.X);
-                    // auto Rtmp = Binv * (1.f / dt_eval);
-                    // auto u    = (Xtmp - Xr) * Rtmp;
-                }
-
+                auto& boundary = minkowski_boundaries[entity_idx];
+                auto& entity   = game_entities[entity_idx];
 
                 {
-                    float c_norm_x;
-                    float c_norm_y;
+                    // TODO: different strategies? if collision first attempt then go smaller than dt_step?
+                    // Could also try a binary search like thing.
 
-                    float v_x;
-                    float v_y;
+                    linalg::Vectorf<2> c, r, p;
 
-                    // TODO write norm function.
-                    float norm   = std::sqrt((c_norm[0] * c_norm[0]) + (c_norm[1] * c_norm[1]));
-                    auto  v      = linalg::Vectorf<2>(player.X[1]);
-                    auto  v_norm = std::sqrt((v[0] * v[0]) + (v[1] * v[1]));
+                    auto collided = is_point_in_rect(player.X[0][0],
+                                                     player.X[0][1],
+                                                     boundary);
 
-                    float pv_x;
-                    float pv_y;
-
-                    // TODO: must be better way to refactor this.
-                    if (x_edge)
+                    if (!collided)
                     {
-                        c_norm_x = ((T(ux) * c_norm) * (1.f / norm))[0];
-                        c_norm_y = 0.f;
-
-                        // So like above we should get the x and y part of the
-                        // velocity vector by taking the doc product with with
-                        // the basis vectors,
-                        v_x = c_norm_x * (T(ux) * (v * (1.f / v_norm)))[0];
-                        v_y = c_norm_y * (T(uy) * (v * (1.f / v_norm)))[0];
-
-                        // TODO: should compare restitutions and use the smallest one.
-                        pv_x = v_x * player.restitution;
-                        pv_y = 1.f;
+                        player_copy = player;
                     }
                     else
                     {
-                        c_norm_x = 0.f;
-                        c_norm_y = ((T(uy) * c_norm) * (1.f / norm))[0];
+                        // printf("Collided at iteration %d\n", i);
 
-                        v_x = c_norm_x * (T(ux) * (v * (1.f / v_norm)))[0];
-                        v_y = c_norm_y * (T(uy) * (v * (1.f / v_norm)))[0];
+                        // Go back to a position where the player is hasn't collided with the object.
+                        player = player_copy;
 
-                        pv_x = 1.f;
-                        pv_y = v_y * player.restitution;
-                    }
+                        linalg::Matrixf<2, 1> ux{{1.f, 0.f}};
+                        linalg::Matrixf<2, 1> uy{{0.f, 1.f}};
 
-                    player.X[1][0] *= pv_x;
-                    player.X[1][1] *= pv_y;
-                    player.update(dt_eval, game_events.player_movement);
-                }
+                        // TODO: LA, automatically return float from the dot product below (eliminate [0]).
+                        auto  uxdot = (T(ux) * ux)[0];
+                        auto  uydot = (T(uy) * uy)[0];
+                        float ex    = uxdot * (entity.r.w * 0.5);
+                        float ey    = uydot * (entity.r.h * 0.5);
 
-                break;
-            }
-            else
-            {
-                player_copy = player;
-            }
-        }
+                        c = sdl_rect_center(player);
+                        r = sdl_rect_center(entity.r);
 
-        // Render gameplay.
+                        auto d = T(c - r);
+
+                        float dx = (d * ux)[0];
+                        float dy = (d * uy)[0];
+
+                        if (dx > ex)
+                        {
+                            dx = ex;
+                        }
+                        if (dx < -ex)
+                        {
+                            dx = -ex;
+                        }
+
+                        if (dy > ey)
+                        {
+                            dy = ey;
+                        }
+                        if (dy < -ey)
+                        {
+                            dy = -ey;
+                        }
+
+                        p = r + (dx * ux) + (dy * uy);
+
+                        auto c_vec = c - p;
+
+                        // NOTE: Alot of the code below is  more complicated than it actually needs to be
+                        // handling rectangles that don't rotate.
+
+                        // c_norm is a vector between the two centroids. If we use for reflections then collisions
+                        // at the edge of the object to reflect outwards at the angle of c_norm and not perpendicular
+                        // which is what we want for collisions between two rectangles.
+                        bool x_edge;
+                        {
+                            float x1 = std::abs(p[0] - player.X[0][0]);
+                            float x2 = std::abs(p[0] - (player.X[0][0] + player.w));
+
+                            float y1 = std::abs(p[1] - player.X[0][1]);
+                            float y2 = std::abs(p[1] - (player.X[0][1] + player.h));
+
+                            float xmin = std::min(x1, x2);
+                            float ymin = std::min(y1, y2);
+
+                            x_edge = (xmin < ymin);
+                        }
+
+                        {
+                            // TODO write norm function.
+                            auto c_norm = norm(c_vec);
+                            auto v      = linalg::Vectorf<2>(player.X[1]);
+                            auto v_norm = norm(v);
+
+                            float pv_x;
+                            float pv_y;
+
+                            // TODO: must be better way to refactor this.
+                            if (x_edge)
+                            {
+                                auto c_norm_x = ((T(ux) * c_norm))[0];
+                                auto c_norm_y = 0.f;
+
+                                // So like above we should get the x and y part of the
+                                // velocity vector by taking the doc product with with
+                                // the basis vectors,
+                                auto v_x = (c_norm_x * (T(ux) * (v_norm)))[0];
+
+                                // TODO: should compare restitutions and use the smallest one.
+                                pv_x = v_x * player.restitution;
+                                pv_y = 1.f; // allows gliding.
+                            }
+                            else
+                            {
+                                auto c_norm_x = 0.f;
+                                auto c_norm_y = ((T(uy) * c_norm))[0];
+
+                                auto v_y = (c_norm_y * (T(uy) * v_norm))[0];
+
+                                pv_x = 1.f; // allows gliding.
+                                pv_y = v_y * player.restitution;
+                            }
+
+                            player.X[1][0] *= pv_x;
+                            player.X[1][1] *= pv_y;
+
+                            // Calculate the time remaining after the collision.
+                            float dt_eval = dt - (dt_step * loop_idx);
+                            player.update(dt_eval, game_events.player_movement);
+                        }
+
+                        break;
+                    } // if collision.
+                } // collision block.
+            } // game entity loop.
+        } // sim loop.
+
+        // Render player.
         {
             SDL_SetRenderTarget(renderer, nullptr);
             SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
@@ -492,16 +454,26 @@ int main()
                             player.texture,
                             &src,
                             &dst);
+        }
 
+        // Render game entities.
+        {
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
-            SDL_FRect fdst = to_screen_rect(food.r);
-            SDL_RenderFillRectF(renderer, &fdst);
+            for (auto& entity : game_entities)
+            {
+                SDL_FRect fdst = to_screen_rect(entity.r);
+                SDL_RenderFillRectF(renderer, &fdst);
+            }
 
             if (game_events.draw_minkowski)
             {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-                auto dst = to_screen_rect(boundary);
-                SDL_RenderDrawRectF(renderer, &dst);
+
+                for (auto& boundary : minkowski_boundaries)
+                {
+                    auto dst = to_screen_rect(boundary);
+                    SDL_RenderDrawRectF(renderer, &dst);
+                }
             }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
@@ -512,26 +484,16 @@ int main()
                                      player.X[0][1],
                                      player.Y[1][0],
                                      player.Y[1][1]);
-
-                if (collided)
-                {
-                    draw_velocity_vector(renderer,
-                                         r[0],
-                                         r[1],
-                                         p[0],
-                                         p[1]);
-                    std::cout << r;
-                    std::cout << p;
-                }
             }
         }
 
+        // Render game hud.
         {
             game_hud.update(game_loop.time_taken);
             game_hud.render(renderer, game_hud_texture);
         }
 
-        // Render hud. This is a bit wasteful if the hud is not enabled
+        // Render dev hud. This is a bit wasteful if the hud is not enabled
         // however for not it is good to do so we can keep an eye on CPU usage.
         {
             dev_hud.update(game_loop.time_taken,

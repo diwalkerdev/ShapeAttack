@@ -93,7 +93,7 @@ auto generate_points(Tp&& entity)
 //////////////////////////////////////////////////////////////////////////////
 
 template <typename Tp>
-auto minkowski_boundery(Tp&& entity, linalg::Vectorf<2> const& origin)
+auto minkowski_boundary(Tp&& entity, linalg::Vectorf<2> const& origin)
 {
     auto points = generate_points(entity);
 
@@ -116,6 +116,49 @@ auto minkowski_boundery(Tp&& entity, linalg::Vectorf<2> const& origin)
         points[0][1],
         w,
         h};
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+auto make_food()
+{
+    EntityStatic food;
+    food.r           = {200.f, 100.f, 40.f, 40.f};
+    food.restitution = 1.f;
+    return food;
+}
+
+auto make_wall()
+{
+    EntityStatic food;
+    food.r           = {300.f, 200.f, 40.f, 40.f};
+    food.restitution = 1.f;
+    return food;
+}
+
+auto make_player()
+{
+    constexpr float mass  = 1.f;
+    constexpr float imass = 1.f / mass;
+    constexpr float k     = 0.f * imass;
+    constexpr float b     = -3.f * imass; // friction coefficient
+
+    Entity player{0};
+    player.w           = 80.f;
+    player.h           = 80.f;
+    player.imass       = imass;
+    player.k           = k;
+    player.restitution = 0.5;
+
+    player.X[0][0] = 100;
+    player.X[0][1] = 100;
+    player.X[1][0] = 0;
+    player.X[1][1] = 0;
+
+    player.A = {{{0.f, 1.f}, {k, b}}};
+    player.B = linalg::Matrixf<2, 2>::I();
+    player.B *= 500.f;
+    return player;
 }
 
 #endif // GAME_ENTITY_HPP
