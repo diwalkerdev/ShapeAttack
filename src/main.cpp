@@ -526,7 +526,16 @@ int main()
                 detect_hard_collisions(dt, dt_step, loop_idx, game_events, player, walls, hard_boundaries, collided);
                 detect_soft_collisions(player, game_entities, soft_boundaries);
             }
+
             player.update();
+
+            // Player status, detect game over events.
+            if (player.hunger < 0.f)
+            {
+                printf("Player starved.\n");
+                player.hunger = 0.5;
+                // TODO: Game over event.
+            }
         }
 
         // Render player.
