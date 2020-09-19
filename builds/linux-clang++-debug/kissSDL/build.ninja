@@ -1,0 +1,61 @@
+include $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/rules.ninja
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_draw.o: $
+    compile /home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/kiss_draw.c
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_general.o: $
+    compile /home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/kiss_general.c
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_posix.o: $
+    compile /home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/kiss_posix.c
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_widgets.o: $
+    compile /home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/kiss_widgets.c
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
+
+build $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/libkiss_sdl.a: $
+    archive $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_draw.o $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_general.o $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_posix.o $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/kiss_widgets.o
+  archiver = ar
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/ShapeAttack/lib/kiss_sdl/\"
+
+build libkiss_sdl.a: phony $
+    /home/dwalker0044/Projects/ShapeAttack/builds/linux-clang++-debug/kissSDL/libkiss_sdl.a
+build kissSDL: phony libkiss_sdl.a
+

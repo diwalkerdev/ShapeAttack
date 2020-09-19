@@ -12,7 +12,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/fmt/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui
-  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_FMT_EXTERNAL
 
@@ -27,7 +27,7 @@ build $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/fmt/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui
-  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_FMT_EXTERNAL
 
@@ -42,7 +42,7 @@ build Tests.exe: exe $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/fmt/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/spdlog/include $
       -I/home/dwalker0044/Projects/ShapeAttack/lib/imgui
-  flags = -std=c++20 -O1 -g -fsanitize=address -fno-omit-frame-pointer $
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
   defines = -DSPDLOG_FMT_EXTERNAL
   exe_name = Tests.exe
