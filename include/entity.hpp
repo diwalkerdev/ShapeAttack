@@ -7,8 +7,7 @@
 #include <SDL2/SDL.h>
 
 struct Entity {
-    SDL_Texture* texture;
-    float        w, h;
+    float w, h;
 
     // State space representation.
     linalg::Matrixf<2, 2> X; // position, velocity.
@@ -30,16 +29,43 @@ struct Entity {
     }
 };
 
+struct Player {
+    Entity e;
+
+    SDL_Texture* texture;
+    float        hunger;
+
+    void update()
+    {
+        hunger -= 0.001;
+    }
+
+    void eat(float amount)
+    {
+        hunger += amount;
+        hunger = (hunger <= 1.f) ? hunger : 1.f;
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////////
+
+enum class EntityKinds {
+    Boundary,
+    Food
+};
+
 struct EntityStatic {
     SDL_Texture* texture;
     SDL_FRect    r;
     float        restitution;
+    EntityKinds  kind_of;
+    bool         alive;
 };
 
 //////////////////////////////////////////////////////////////////////////////
 
 
-auto sdl_rect(Entity& entity)
+auto sdl_rect(Entity const& entity)
 {
     SDL_FRect rect;
 
@@ -51,12 +77,12 @@ auto sdl_rect(Entity& entity)
     return rect;
 }
 
-auto sdl_rect(EntityStatic& entity)
+auto sdl_rect(EntityStatic const& entity)
 {
     return entity.r;
 }
 
-auto sdl_rect_center(Entity& entity)
+auto sdl_rect_center(Entity const& entity)
 {
     auto r = sdl_rect(entity);
     return sdl_rect_center(r);
@@ -64,7 +90,7 @@ auto sdl_rect_center(Entity& entity)
 
 //////////////////////////////////////////////////////////////////////////////
 
-auto is_point_in_rect(float x, float y, SDL_FRect& rect)
+auto is_point_in_rect(float x, float y, SDL_FRect const& rect)
 {
     bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
     bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
@@ -125,15 +151,19 @@ auto make_food()
     EntityStatic food;
     food.r           = {200.f, 100.f, 40.f, 40.f};
     food.restitution = 1.f;
+    food.alive       = true;
+    food.kind_of     = EntityKinds::Food;
     return food;
 }
 
 auto make_wall()
 {
-    EntityStatic food;
-    food.r           = {300.f, 200.f, 40.f, 40.f};
-    food.restitution = 1.f;
-    return food;
+    EntityStatic wall;
+    wall.r           = {300.f, 200.f, 40.f, 40.f};
+    wall.restitution = 1.f;
+    wall.alive       = true;
+    wall.kind_of     = EntityKinds::Boundary;
+    return wall;
 }
 
 auto make_player()
@@ -143,21 +173,26 @@ auto make_player()
     constexpr float k     = 0.f * imass;
     constexpr float b     = -3.f * imass; // friction coefficient
 
-    Entity player{0};
-    player.w           = 80.f;
-    player.h           = 80.f;
-    player.imass       = imass;
-    player.k           = k;
-    player.restitution = 0.5;
+    Entity entity{0};
+    entity.w           = 80.f;
+    entity.h           = 80.f;
+    entity.imass       = imass;
+    entity.k           = k;
+    entity.restitution = 0.5;
 
-    player.X[0][0] = 100;
-    player.X[0][1] = 100;
-    player.X[1][0] = 0;
-    player.X[1][1] = 0;
+    entity.X[0][0] = 100;
+    entity.X[0][1] = 100;
+    entity.X[1][0] = 0;
+    entity.X[1][1] = 0;
 
-    player.A = {{{0.f, 1.f}, {k, b}}};
-    player.B = linalg::Matrixf<2, 2>::I();
-    player.B *= 500.f;
+    entity.A = {{{0.f, 1.f}, {k, b}}};
+    entity.B = linalg::Matrixf<2, 2>::I();
+    entity.B *= 500.f;
+
+    Player player;
+    player.e      = entity;
+    player.hunger = 0.5f;
+
     return player;
 }
 

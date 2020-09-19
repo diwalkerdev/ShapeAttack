@@ -83,13 +83,9 @@ struct GameHud {
     {
     }
 
-    void update(int time_elapsed)
+    void update(Player &player)
     {
-        hunger_bar.fraction -= (((float)time_elapsed) / 1000.f);
-        if (hunger_bar.fraction < 0)
-        {
-            hunger_bar.fraction = 1;
-        }
+        hunger_bar.fraction = player.hunger;
     }
 
 

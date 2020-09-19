@@ -4,17 +4,10 @@
 #include "gameevents.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
+#include "recthelper.hpp"
 #include <SDL2/SDL.h>
 #include <array>
 #include <string>
-
-auto center_a_in_b(SDL_Rect* a, SDL_Rect* b)
-{
-    int x = (b->w - a->w) / 2;
-    int y = (b->h - a->h) / 2;
-    a->x  = x;
-    a->y  = y;
-}
 
 struct DevHud {
     kiss_window                      window = {0};
@@ -34,19 +27,10 @@ struct DevHud {
     // {
     // }
 
-    DevHud()
+    DevHud(SDL_Rect const& kiss_screen, int width, int height)
     {
-        SDL_Rect kiss_screen{0,
-                             0,
-                             kiss_screen_width,
-                             kiss_screen_height};
-        SDL_Rect window_rect{0,
-                             0,
-                             kiss_screen_width / 2,
-                             kiss_screen_height / 2};
-
-        center_a_in_b(&window_rect,
-                      &kiss_screen);
+        SDL_Rect window_rect{0, 0, width, height};
+        center_a_in_b(window_rect, kiss_screen);
 
         kiss_window_new(&window,
                         NULL,
