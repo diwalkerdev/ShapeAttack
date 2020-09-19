@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/builds/linux-clang++-debug/shapeAttack/ShapeAttack.exe",
+            "program": "${workspaceFolder}/builds/linux-clang++-debug/untitled2d/Untitled2D.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

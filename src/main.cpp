@@ -464,7 +464,7 @@ int main()
     }
 
     player.texture = load_texture(renderer,
-                                  "/home/dwalker0044/Projects/ShapeAttack/res/player.png");
+                                  "/home/dwalker0044/Projects/Untitled2D/res/player.png");
 
     auto* dev_hud_texture = SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_ABGR8888,
