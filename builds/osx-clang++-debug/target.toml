@@ -39,10 +39,10 @@ defines = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]
     includePaths = ["lib/imgui"]
 
 [[builds]]
-    name = "shapeAttack"
+    name = "untitled2d"
     buildRule = "exe"
     requires = ["spdlog", "fmt", "imgui"]
-    outputName = "ShapeAttack"
+    outputName = "untitled2d"
     srcDirs = ["src"]
     includePaths = [
         "/usr/local/include/SDL2",

@@ -1,0 +1,47 @@
+include $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/rules.ninja
+
+subninja $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/build.ninja
+
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/main.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/src/main.cpp
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
+      -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
+
+build Untitled2D.exe: exe $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/main.o $
+    | libkiss_sdl.a
+  compiler = clang++
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
+      -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL $
+      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
+  exe_name = Untitled2D.exe
+  linker_args = -Wl,-rpath='$$ORIGIN' $
+      -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL $
+      -lkiss_sdl $
+      -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/fmt $
+      -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/spdlog $
+      -lSDL2_image -lSDL2_ttf -lSDL2 -lfmt -lspdlog
+
+build untitled2d: phony Untitled2D.exe
+

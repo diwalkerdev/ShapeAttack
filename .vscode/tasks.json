@@ -10,7 +10,7 @@
             "group": "build",
             "args": [
                 "build",
-                "shapeAttack",
+                "untitled2d",
                 "--target=builds/linux-clang++-debug"
             ],
             "presentation": {
@@ -32,7 +32,7 @@
             "group": "build",
             "args": [
                 "build",
-                "shapeAttack",
+                "untitled2d",
                 "--target=builds/osx-clang++-debug"
             ],
             "presentation": {
@@ -71,7 +71,7 @@
         },
         {
             "label": "run",
-            "command": "./builds/linux-clang++-debug/shapeAttack/ShapeAttack.exe",
+            "command": "./builds/linux-clang++-debug/untitled2d/Untitled2D.exe",
             "type": "shell",
             "group": "build",
             "presentation": {
@@ -88,7 +88,7 @@
         },
         {
             "label": "run osx",
-            "command": "./builds/osx-clang++-debug/shapeAttack/ShapeAttack.exe",
+            "command": "./builds/osx-clang++-debug/untitled2d/Untitled2D.exe",
             "type": "shell",
             "group": "build",
             "presentation": {
