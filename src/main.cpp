@@ -18,6 +18,7 @@
 #include "shapes.hpp"
 #include "typedefs.h"
 // #include "spdlog/spdlog.h"
+#include "msgpack.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -26,6 +27,44 @@
 #include <numeric>
 #include <string>
 #include <vector>
+
+struct Something {
+    MSGPACK_DEFINE();
+};
+int run_msgpack_example(void)
+{
+    msgpack::type::tuple<int, bool, std::string> src(1, true, "example");
+
+    // serialize the object into the buffer.
+    // any classes that implements write(const char*,size_t) can be a buffer.
+    std::stringstream buffer;
+    msgpack::pack(buffer, src);
+
+    // send the buffer ...
+    buffer.seekg(0);
+
+    // deserialize the buffer into msgpack::object instance.
+    std::string str(buffer.str());
+
+    msgpack::object_handle oh = msgpack::unpack(str.data(), str.size());
+
+    // deserialized object is valid during the msgpack::object_handle instance is alive.
+    msgpack::object deserialized = oh.get();
+
+    // msgpack::object supports ostream.
+    std::cout << deserialized << std::endl;
+
+    // convert msgpack::object instance into the original type.
+    // if the type is mismatched, it throws msgpack::type_error exception.
+    msgpack::type::tuple<int, bool, std::string> dst;
+    deserialized.convert(dst);
+
+    // or create the new instance
+    msgpack::type::tuple<int, bool, std::string> dst2 = deserialized.as<msgpack::type::tuple<int, bool, std::string>>();
+
+    return 0;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -423,6 +462,9 @@ auto detect_soft_collisions(Player&                    player,
 
 int main()
 {
+
+    run_msgpack_example();
+
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
 

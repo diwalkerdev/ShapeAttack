@@ -69,7 +69,8 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
         "include",
         "lib/LinAlg/include",
         "lib/fmt/include",
-        "lib/spdlog/include"
+        "lib/spdlog/include",
+        "lib/msgpack-c/include"
     ]
     libraryPaths = [
         "builds/linux-clang++-debug/fmt",
