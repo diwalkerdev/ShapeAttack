@@ -66,6 +66,221 @@ int run_msgpack_example(void)
 }
 
 
+struct WindowData {
+    std::vector<float*>       floats;
+    std::vector<bool*>        bools;
+    std::vector<std::string*> strings;
+
+    std::vector<kiss_label>        labels;
+    std::vector<kiss_label>        widget_labels;
+    std::vector<kiss_selectbutton> select_buttons;
+    std::vector<kiss_entry>        entry_boxes;
+
+    struct WidgetDataMap {
+        int         type;
+        char const* label;
+        size_t      data_id;
+        size_t      widget_id;
+    };
+
+    std::vector<WidgetDataMap> sequence;
+};
+
+auto window_data_add_concrete_tp(WindowData& window, char const* label, float* data)
+{
+    window.labels.push_back({});
+    window.entry_boxes.push_back({});
+    window.floats.push_back(data);
+
+    window.sequence.push_back({1,
+                               label,
+                               window.floats.size() - 1,
+                               window.entry_boxes.size() - 1});
+}
+
+
+auto window_data_add_concrete_tp(WindowData& window, char const* label, bool* data)
+{
+    window.labels.push_back({});
+    window.bools.push_back(data);
+    window.select_buttons.push_back({});
+    window.sequence.push_back({2, label, window.bools.size() - 1, window.select_buttons.size() - 1});
+}
+
+
+auto window_data_add_concrete_tp(WindowData& window, char const* label, std::string* data)
+{
+    window.labels.push_back({});
+    window.strings.push_back(data);
+    window.widget_labels.push_back({});
+    window.sequence.push_back({3, label, window.strings.size() - 1, window.widget_labels.size() - 1});
+}
+
+
+template <typename Tp>
+auto window_data_add(WindowData& window_data, std::tuple<char const*, Tp*> data)
+{
+    window_data_add_concrete_tp(window_data, std::get<0>(data), std::get<1>(data));
+}
+
+template <typename Tp, typename... Args>
+auto window_data_add(WindowData& window_data, std::tuple<char const*, Tp*> data, Args... args)
+{
+    window_data_add_concrete_tp(window_data, std::get<0>(data), std::get<1>(data));
+    window_data_add(window_data, args...);
+}
+
+template <typename... Args>
+auto make_window(WindowData& window_data, Args... args)
+{
+    window_data_add(window_data, args...);
+}
+
+char text[] = {'T', 'O', 'D', 'O', '\0'};
+
+auto make_window_from_values(kiss_window& window, SDL_Rect& kiss_screen, int width, int height, WindowData& data)
+{
+    SDL_Rect window_rect{0, 0, width, height};
+    center_a_in_b(window_rect, kiss_screen);
+
+    kiss_window_new(&window,
+                    NULL,
+                    1,
+                    window_rect.x,
+                    window_rect.y,
+                    window_rect.w,
+                    window_rect.h);
+    window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
+    window.visible = 1;
+
+    auto border   = 4;
+    auto x_offset = window.rect.x + border;
+    auto y_offset = window.rect.y + border;
+
+    auto x_center = window.rect.x + window.rect.w / 2;
+    auto y_center = window.rect.y + window.rect.h / 2;
+
+    float       num = M_PI;
+    bool        x   = true;
+    std::string name("David");
+
+    make_window(data,
+                std::tuple{"Number", &num},
+                std::tuple{"X", &x} /*,
+                std::tuple{"Name", &name}*/
+    );
+
+    fmt::print("floats: {0}\n", data.floats.size());
+    fmt::print("ints: {0}\n", data.bools.size());
+    fmt::print("strings: {0}\n", data.strings.size());
+    for (auto& element : data.sequence)
+    {
+        fmt::print("{0} {1} {2}\n", element.type, element.data_id, element.widget_id);
+    }
+
+    int row = 0;
+
+    int label_text_height = kiss_textfont.fontheight + (1 * kiss_normal.h);
+    int row_height        = (label_text_height / 2);
+
+    int errors;
+    // Init the widgets.
+    for (int index = 0; index < data.sequence.size(); ++index)
+    {
+        auto& element = data.sequence[index];
+
+        int         type      = element.type;
+        char const* label     = element.label;
+        size_t      data_id   = element.data_id;
+        size_t      widget_id = element.widget_id;
+
+
+        kiss_label_new(&data.labels[index],
+                       &window,
+                       label,
+                       x_offset,
+                       y_offset + (row * row_height));
+
+        if (type == 1)
+        {
+            printf("Got entry\n");
+
+            errors = kiss_entry_new(&data.entry_boxes[widget_id],
+                                    &window,
+                                    false, // decorate
+                                    &text[0],
+                                    x_center + border,
+                                    y_offset + (row++ * row_height),
+                                    100);
+            assert(errors == 0);
+        }
+        else if (type == 2)
+        {
+            printf("Got select\n");
+            kiss_selectbutton_new(&data.select_buttons[widget_id],
+                                  &window,
+                                  x_center + border,
+                                  y_offset + (row++ * row_height));
+        }
+        else if (type == 3)
+        {
+        }
+    }
+}
+
+
+void window_render(SDL_Renderer* renderer, SDL_Texture* texture, WindowData& data, kiss_window& window)
+{
+    SDL_SetRenderTarget(renderer, texture);
+    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
+    SDL_RenderClear(renderer);
+
+    kiss_window_draw(&window, renderer);
+    for (auto& label : data.labels)
+    {
+        kiss_label_draw(&label, renderer);
+    }
+    for (auto& entry : data.entry_boxes)
+    {
+        kiss_entry_draw(&entry, renderer);
+    }
+    for (auto& button : data.select_buttons)
+    {
+        kiss_selectbutton_draw(&button, renderer);
+    }
+
+    SDL_SetRenderTarget(renderer, nullptr);
+}
+void handle_events(SDL_Event* event, int* draw, GameEvents& game_events)
+{
+    if (kiss_selectbutton_event(&select_buttons[0], event, draw))
+    {
+        game_events.draw_vectors = select_buttons[0].selected;
+    }
+    else if (kiss_selectbutton_event(&select_buttons[1], event, draw))
+    {
+        game_events.draw_minkowski = select_buttons[1].selected;
+    }
+}
+auto window_handle_events(SDL_Event* event, int* draw, WindowData& window_data)
+{
+    // for (auto& entry_box : window_data.entry_boxes)
+    // {
+    //     if (kiss_entry_event(&entry_box, event, draw))
+    //     {
+    //         window_data.entry_handlers[0].exec(&entry_box, );
+    //     }
+    // }
+
+
+    for (auto& element : window_data.sequence)
+    {
+        int         type      = element.type;
+        char const* label     = element.label;
+        size_t      data_id   = element.data_id;
+        size_t      widget_id = element.widget_id;
+    }
+}
 //////////////////////////////////////////////////////////////////////////////
 
 void handle_input(SDL_Event& event, GameEvents& game_events)
@@ -498,6 +713,14 @@ int main()
                    kiss_screen_height / 2);
     GameHud  game_hud;
 
+    kiss_window editor_window;
+    WindowData  window_data;
+    make_window_from_values(editor_window,
+                            kiss_screen,
+                            kiss_screen_width / 2,
+                            kiss_screen_height / 2,
+                            window_data);
+
     if (renderer == nullptr)
     {
         printf("Renderer could not be created! SDL_Error: %s\n",
@@ -675,8 +898,10 @@ int main()
                                &dev_hud.window.rect);
             }
 
+            window_render(renderer, nullptr, window_data, editor_window);
             SDL_RenderPresent(renderer);
         }
+
 
         game_loop.end();
         game_loop.delay();
