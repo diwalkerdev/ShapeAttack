@@ -132,6 +132,13 @@ struct DevHud {
         }
     }
 
+    // Init is an opportunity to initialise widget states. This is useful, for example,
+    // for setting the states from variables that are loaded from the game_state save file.
+    void init(GameEvents const& game_events)
+    {
+        select_buttons[0].selected = game_events.draw_vectors;
+        select_buttons[1].selected = game_events.draw_minkowski;
+    }
 
     // TODO: Should take the structs not individual parameters.
     void update(int time_taken, float fps, linalg::Matrixf<2, 2>& v)

@@ -15,10 +15,11 @@
 #include "misc.hpp"
 #include "recthelper.hpp"
 #include "screen.h"
+#include "serialisation.hpp"
 #include "shapes.hpp"
 #include "typedefs.h"
 // #include "spdlog/spdlog.h"
-#include "msgpack.hpp"
+
 
 #include <algorithm>
 #include <complex>
@@ -27,43 +28,6 @@
 #include <numeric>
 #include <string>
 #include <vector>
-
-struct Something {
-    MSGPACK_DEFINE();
-};
-int run_msgpack_example(void)
-{
-    msgpack::type::tuple<int, bool, std::string> src(1, true, "example");
-
-    // serialize the object into the buffer.
-    // any classes that implements write(const char*,size_t) can be a buffer.
-    std::stringstream buffer;
-    msgpack::pack(buffer, src);
-
-    // send the buffer ...
-    buffer.seekg(0);
-
-    // deserialize the buffer into msgpack::object instance.
-    std::string str(buffer.str());
-
-    msgpack::object_handle oh = msgpack::unpack(str.data(), str.size());
-
-    // deserialized object is valid during the msgpack::object_handle instance is alive.
-    msgpack::object deserialized = oh.get();
-
-    // msgpack::object supports ostream.
-    std::cout << deserialized << std::endl;
-
-    // convert msgpack::object instance into the original type.
-    // if the type is mismatched, it throws msgpack::type_error exception.
-    msgpack::type::tuple<int, bool, std::string> dst;
-    deserialized.convert(dst);
-
-    // or create the new instance
-    msgpack::type::tuple<int, bool, std::string> dst2 = deserialized.as<msgpack::type::tuple<int, bool, std::string>>();
-
-    return 0;
-}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -460,10 +424,16 @@ auto detect_soft_collisions(Player&                    player,
     }
 }
 
-int main()
-{
+#include <filesystem>
 
-    run_msgpack_example();
+int main(int argc, char* argv[])
+{
+    std::string           argv_str(argv[0]);
+    std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
+    std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
+
+    // fmt::print("{0}  {1}\n", argv_str, base);
+
 
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
@@ -482,6 +452,8 @@ int main()
     std::vector<SDL_FRect>    soft_boundaries;
     std::vector<SDL_FRect>    hard_boundaries;
 
+    serialisation::load(game_state_path, game_events);
+
     kiss_array_new(&objects);
     renderer = kiss_init("Hello kiss_sdl",
                          &objects,
@@ -496,7 +468,9 @@ int main()
     DevHud   dev_hud(kiss_screen,
                    kiss_screen_width / 2,
                    kiss_screen_height / 2);
-    GameHud  game_hud;
+    dev_hud.init(game_events);
+
+    GameHud game_hud;
 
     if (renderer == nullptr)
     {
@@ -681,6 +655,8 @@ int main()
         game_loop.end();
         game_loop.delay();
     }
+
+    serialisation::save(game_state_path, game_events);
 
     kiss_clean(&objects);
 }
