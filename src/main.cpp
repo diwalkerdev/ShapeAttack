@@ -426,7 +426,6 @@ auto detect_soft_collisions(Player&                    player,
 
 int main()
 {
-
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
 
@@ -475,11 +474,23 @@ int main()
     editor_window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
     editor_window.visible = 1;
 
-    // make_window_from_values(editor_window,
-    //                         kiss_screen,
-    //                         kiss_screen_width / 2,
-    //                         kiss_screen_height / 2,
-    //                         window_data);
+    float const pi     = M_PI;
+    bool const  truthy = true;
+    float       number = 1.234;
+    bool        choice = false;
+
+    DataStructure window_data(std::tuple{"Number", &number},
+                              std::tuple{"PI", &pi},
+                              std::tuple{"Truthy", &truthy},
+                              std::tuple{"Choice", &choice},
+                              std::tuple{"Player x", (const float*)&player.e.X[0][0]},
+                              std::tuple{"Player y", (const float*)&player.e.X[0][1]});
+
+
+    print(window_data);
+
+    Grid2x2 grid(&editor_window);
+    window_init(window_data, &editor_window, grid);
 
 
     if (renderer == nullptr)
@@ -533,6 +544,7 @@ int main()
             dev_hud.handle_events(&e, &draw, game_events);
             game_hud.handle_events(&e, &draw, game_events);
             // window_handle_events(&e, &draw, window_data);
+            editor_handle_events(window_data, &e, &draw);
         }
 
         // Update gameplay.
@@ -662,9 +674,25 @@ int main()
             }
 
             // window_render(renderer, nullptr, window_data, editor_window);
-            assert(&editor_window);
-            assert(renderer);
-            test_function(&editor_window, renderer, nullptr);
+            // assert(&editor_window);
+            // assert(renderer);
+            // test_function(&editor_window, renderer, nullptr);
+
+            // Hacking generic window editor.
+            {
+                Grid2x2 grid(&editor_window);
+                window_init(window_data, &editor_window, grid);
+
+                SDL_SetRenderTarget(renderer, nullptr);
+                SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
+                SDL_RenderClear(renderer);
+
+                kiss_window_draw(&editor_window, renderer);
+                window_draw(window_data, renderer);
+
+                SDL_SetRenderTarget(renderer, nullptr);
+            }
+
             SDL_RenderPresent(renderer);
         }
 

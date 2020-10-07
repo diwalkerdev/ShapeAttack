@@ -1,9 +1,12 @@
 #ifndef PROPERTY_EDITOR_HPP
 #define PROPERTY_EDITOR_HPP
 
+#include "fmt/core.h"
 #include "kiss_sdl.h"
 #include <SDL2/SDL.h>
+#include <iostream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 
@@ -22,154 +25,97 @@ struct int_entry {
     char       data[KISS_MAX_LENGTH];
 };
 
-template <typename Tp>
-struct readonly {
-    kiss_label k;
-    Tp const*  data;
-    char       tbuf[KISS_MAX_LENGTH];
-};
-
-enum class WidgetType {
-    number,
-    integer,
-    binary,
-    text,
-    display
-};
-
-struct WindowData {
-    std::vector<float*> floats;
-    std::vector<int*>   integers;
-    std::vector<bool*>  bools;
-    std::vector<char*>  strings;
-    // std::vector<std::string>  fmt_buffer;
-
-    std::vector<kiss_label>        labels;
-    std::vector<kiss_label>        widget_labels;
-    std::vector<kiss_selectbutton> select_buttons;
-    // std::vector<kiss_entry>        entry_boxes;
-    std::vector<text_entry>  text_entry_boxes;
-    std::vector<float_entry> float_entry_boxes;
-    std::vector<int_entry>   int_entry_boxes;
-    // std::vector<readonly> readonly_boxes;
-
-    struct WidgetDataMap {
-        WidgetType  type;
-        char const* label;
-        size_t      data_id;
-        size_t      widget_id;
-    };
-
-    std::vector<WidgetDataMap> sequence;
-};
-
-auto make_window_from_values(kiss_window&, SDL_Rect&, int, int, WindowData&) -> void;
-
-void window_render(SDL_Renderer*, SDL_Texture*, WindowData&, kiss_window&);
-auto window_handle_events(SDL_Event* event, int* draw, WindowData& data) -> void;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 inline auto associated_widget(float*) -> float_entry;
 inline auto associated_widget(bool*) -> kiss_selectbutton;
 inline auto associated_widget(float const*) -> kiss_label;
+inline auto associated_widget(bool const*) -> kiss_label;
 
-template <size_t idx, typename T>
-struct GetHelper;
-
-
-template <typename... T>
+// 1. General variadic template declaration.
+//    Declare that the follow struct will be variadic.
+template <typename... Tp>
 struct DataStructure {
 };
 
-template <typename T, typename... Rest>
-struct DataStructure<const char*, T, Rest...> {
-    DataStructure(char const* label, T param, const Rest&... rest)
-        : label(label)
-        , data(param)
-        , rest(rest...)
-    {
-    }
-
-    char const*                       label;
+// 2. Specialisation - deals with the variadic parameter unpacking.
+//    Given vargs, how are they consumed? 1 at a time? 2 at a time?
+template <typename Tp, typename... Args>
+struct DataStructure<std::tuple<const char*, Tp*>, Args...> {
+    const char*                       label;
+    Tp*                               data;
     kiss_label                        label_widget;
-    T                                 data;
     decltype(associated_widget(data)) data_widget;
 
-    DataStructure<Rest...> rest;
+    DataStructure<Args...> args;
 
-    template <size_t idx>
-    auto get()
+    DataStructure(std::tuple<const char*, Tp*> tup, const Args&... args)
+        : label(std::get<0>(tup))
+        , data(std::get<1>(tup))
+        , args(args...)
     {
-        return GetHelper<idx, DataStructure<char const*, T, Rest...>>::get(*this);
     }
 };
 
-// Deduction guide
-template <typename Tp, typename... Rest>
-DataStructure(char const*, Tp*, Rest...) -> DataStructure<const char*, Tp*, Rest...>;
+// 3. Deduction Guide.
+//    Specifies the specialisation from a constructor call.
+//    Without this the compiler will attempt to use the general form with doesn't have a suitable constructor.
+template <typename Tp, typename... Args>
+DataStructure(std::tuple<const char*, Tp*>, Args...) -> DataStructure<std::tuple<const char*, Tp*>, Args...>;
 
 
-template <typename T, typename... Rest>
-struct GetHelper<0, DataStructure<char const*, T, Rest...>> {
-    static DataStructure<char const*, T, Rest...> get(DataStructure<char const*, T, Rest...>& the_struct)
-    {
-        return the_struct;
-    }
-};
+// template <typename Tp>
+// using GenericWindow = DataStructure<std::tuple<const char*, Tp>>;
 
-template <size_t idx, typename T, typename... Rest>
-struct GetHelper<idx, DataStructure<char const*, T, Rest...>> {
-    static auto get(DataStructure<char const*, T, Rest...>& the_struct)
-    {
-        return GetHelper<idx - 1, DataStructure<Rest...>>::get(the_struct.rest);
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////
+template <typename Tp, typename... Args>
+using GenericWindowArgs = DataStructure<std::tuple<const char*, Tp>, Args...>;
 
 
-#include <cassert>
-#include <iostream>
-
-template <typename P = char const*, typename T>
-auto print(DataStructure<P, T>& ds)
+// 4. Get
+//    Allows access to the 'elements' of variadic structure.
+template <std::size_t index, typename Tp, typename... Args>
+inline constexpr auto get(GenericWindowArgs<Tp*, Args...>& ds)
 {
-    std::cout << *(ds.data) << std::endl;
+    if constexpr (index == 0)
+    {
+        return ds;
+    }
+    else
+    {
+        return get<index - 1>(ds.args);
+    }
 }
 
 
-template <typename P = char const*, typename T, typename... Rest>
-auto print(DataStructure<P, T, Rest...>& ds) -> std::enable_if_t<sizeof...(Rest) != 0, void>
+template <typename Tp, typename... Args>
+constexpr auto print(GenericWindowArgs<Tp*, Args...>& ds)
 {
-    std::cout << *(ds.data) << std::endl;
-    print(ds.rest);
+    std::cout << ds.label << " " << *ds.data << '\n';
+    if constexpr (sizeof...(Args) > 0)
+    {
+        print(ds.args);
+    }
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
+
 
 struct Grid2x2 {
     Grid2x2(kiss_window* window)
     {
-        auto border   = 4;
-        auto x_offset = window->rect.x + border;
-        auto y_offset = window->rect.y + border;
-        auto x_center = window->rect.x + window->rect.w / 2;
-        auto y_center = window->rect.y + window->rect.h / 2;
+        border   = 4;
+        x_offset = window->rect.x + border;
+        y_offset = window->rect.y + border;
+        x_center = window->rect.x + window->rect.w / 2;
+        y_center = window->rect.y + window->rect.h / 2;
 
-        int label_text_height = kiss_textfont.fontheight + (1 * kiss_normal.h);
-        int row_height        = (label_text_height / 2) + 10;
+        label_text_height = kiss_textfont.fontheight + (1 * kiss_normal.h);
+        row_height        = 50; // (label_text_height / 2) + 10;
     }
 
-    void get(int col, int& x, int& y)
+    void get(int col, int& x, int& y) const
     {
-        // x = x_center + border;
-        // y = y_offset + (row * row_height);
-        x = 0;
-        // y = (row * row_height);
-        y = row * 50;
+        x = (col == 0) ? x_offset + border : x_center + border;
+        y = y_offset + (row * row_height);
     }
 
     int row{0};
@@ -184,21 +130,35 @@ struct Grid2x2 {
     int row_height;
 };
 
-#include "fmt/core.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+#include <cassert>
 
-template <typename... Rest>
-void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, float*, Rest...>& ds)
+inline void init_widget_label(kiss_window* window, Grid2x2& grid, kiss_label* label_widget, const char* label_text)
+{
+    int x, y;
+    grid.get(0, x, y);
+
+    int errors = kiss_label_new(label_widget,
+                                window,
+                                label_text,
+                                x,
+                                y);
+}
+
+template <typename... Args>
+void init(kiss_window* window, Grid2x2& grid, GenericWindowArgs<float*, Args...>& ds)
 {
     float_entry* entry  = &ds.data_widget;
     float*       number = ds.data;
+
+    init_widget_label(window, grid, &ds.label_widget, ds.label);
 
     auto as_text = fmt::format("{0}", *number);
     strncpy(&entry->data[0], as_text.c_str(), KISS_MAX_LENGTH);
 
     int x, y;
-    grid.get(0, x, y);
+    grid.get(1, x, y);
 
     int errors = kiss_entry_new(&entry->k,
                                 window,
@@ -210,16 +170,18 @@ void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, float*,
     assert(errors == 0);
 }
 
-template <typename... Rest>
-void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, float const*, Rest...>& ds)
+template <typename... Args>
+void init(kiss_window* window, Grid2x2& grid, GenericWindowArgs<float const*, Args...>& ds)
 {
     kiss_label*  label  = &ds.data_widget;
     float const* number = ds.data;
 
+    init_widget_label(window, grid, &ds.label_widget, ds.label);
+
     auto as_text = fmt::format("{0}", *number);
 
     int x, y;
-    grid.get(0, x, y);
+    grid.get(1, x, y);
 
     int errors = kiss_label_new(label,
                                 window,
@@ -230,14 +192,16 @@ void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, float c
     assert(errors == 0);
 }
 
-template <typename... Rest>
-void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, bool*, Rest...>& ds)
+template <typename... Args>
+void init(kiss_window* window, Grid2x2& grid, GenericWindowArgs<bool*, Args...>& ds)
 {
     kiss_selectbutton* select = &ds.data_widget;
     bool*              value  = ds.data;
 
+    init_widget_label(window, grid, &ds.label_widget, ds.label);
+
     int x, y;
-    grid.get(0, x, y);
+    grid.get(1, x, y);
 
     int errors = kiss_selectbutton_new(select,
                                        window,
@@ -246,106 +210,134 @@ void init(kiss_window* window, Grid2x2& grid, DataStructure<const char*, bool*, 
     assert(errors == 0);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-template <typename P = char const*, typename T>
-auto window_init(DataStructure<P, T>& ds, kiss_window* window, Grid2x2& grid)
+template <typename... Args>
+void init(kiss_window* window, Grid2x2& grid, GenericWindowArgs<bool const*, Args...>& ds)
 {
-    init(window, grid, ds);
+    kiss_label* label = &ds.data_widget;
+    bool const* value = ds.data;
+
+    init_widget_label(window, grid, &ds.label_widget, ds.label);
+
+    auto as_text = fmt::format("{0}", *value);
+
+    int x, y;
+    grid.get(1, x, y);
+
+    int errors = kiss_label_new(label,
+                                window,
+                                as_text.c_str(),
+                                x,
+                                y);
+    assert(errors == 0);
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
-template <typename P = char const*, typename T, typename... Rest>
-auto window_init(DataStructure<P, T, Rest...>& ds, kiss_window* window, Grid2x2& grid) -> std::enable_if_t<sizeof...(Rest) != 0, void>
+
+template <typename Tp, typename... Args>
+auto window_init(GenericWindowArgs<Tp*, Args...>& ds, kiss_window* window, Grid2x2& grid)
 {
     init(window, grid, ds);
     grid.row += 1;
 
-    window_init(ds.rest, window, grid);
+    if constexpr (sizeof...(Args) > 0)
+    {
+        window_init(ds.args, window, grid);
+    }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename... Rest>
-void draw(SDL_Renderer* renderer, DataStructure<const char*, bool*, Rest...>& ds)
+template <typename... Args>
+void draw(SDL_Renderer* renderer, GenericWindowArgs<bool*, Args...>& ds)
 {
+    kiss_label_draw(&ds.label_widget, renderer);
     kiss_selectbutton_draw(&ds.data_widget, renderer);
 }
 
-template <typename... Rest>
-void draw(SDL_Renderer* renderer, DataStructure<const char*, float*, Rest...>& ds)
+template <typename... Args>
+void draw(SDL_Renderer* renderer, GenericWindowArgs<bool const*, Args...>& ds)
 {
-    kiss_entry_draw(&ds.data_widget.k, renderer);
-}
-
-template <typename... Rest>
-void draw(SDL_Renderer* renderer, DataStructure<const char*, float const*, Rest...>& ds)
-{
+    kiss_label_draw(&ds.label_widget, renderer);
     kiss_label_draw(&ds.data_widget, renderer);
 }
 
-template <typename P = char const*, typename T>
-auto window_draw(DataStructure<P, T>& ds, SDL_Renderer* renderer) -> void
+template <typename... Args>
+void draw(SDL_Renderer* renderer, GenericWindowArgs<float*, Args...>& ds)
 {
-    // SDL_SetRenderTarget(renderer, texture);
-    // SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
-    // SDL_RenderClear(renderer);
-
-    // kiss_window_draw(&window, renderer);
-
-    draw(renderer, ds);
-
-    // SDL_SetRenderTarget(renderer, nullptr);
+    kiss_label_draw(&ds.label_widget, renderer);
+    kiss_entry_draw(&ds.data_widget.k, renderer);
 }
 
-template <typename P = char const*, typename T, typename... Rest>
-auto window_draw(DataStructure<P, T, Rest...>& ds, SDL_Renderer* renderer) -> std::enable_if_t<sizeof...(Rest) != 0, void>
+template <typename... Args>
+void draw(SDL_Renderer* renderer, GenericWindowArgs<float const*, Args...>& ds)
 {
-    // SDL_SetRenderTarget(renderer, texture);
-    // SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
-    // SDL_RenderClear(renderer);
+    kiss_label_draw(&ds.label_widget, renderer);
+    kiss_label_draw(&ds.data_widget, renderer);
+}
 
-    // kiss_window_draw(&window, renderer);
 
+template <typename Tp, typename... Args>
+auto window_draw(GenericWindowArgs<Tp, Args...>& ds, SDL_Renderer* renderer)
+{
     draw(renderer, ds);
-    window_draw(ds.rest, renderer);
 
-    // SDL_SetRenderTarget(renderer, nullptr);
+    if constexpr (sizeof...(Args) > 0)
+    {
+        window_draw(ds.args, renderer);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-inline void test_function(kiss_window* window, SDL_Renderer* renderer, SDL_Texture* texture)
+template <typename... Args>
+auto handle_event(SDL_Event* event, int* draw, GenericWindowArgs<bool*, Args...>& ds)
 {
-    float const pi     = M_PI;
-    bool const  truthy = true;
-    float       number = 1.234;
-    bool        choice = false;
+    auto& widget = ds.data_widget;
 
-    DataStructure window_data("Number", &number, "PI", &pi, "Choice", &choice);
-    // auto          first = window_data.get<0>();
-    // std::cout << *first.data << "\n";
+    if (kiss_selectbutton_event(&widget, event, draw))
+    {
+        auto* choice = ds.data;
+        *choice      = widget.selected;
+    }
+}
 
-    // auto secn = window_data.get<1>();
-    // std::cout << *secn.data << "\n";
+template <typename... Args>
+auto handle_event(SDL_Event* event, int* draw, GenericWindowArgs<bool const*, Args...>& ds)
+{
+}
 
-    // auto thid = window_data.get<2>();
-    // std::cout << *thid.data << "\n";
-    print(window_data);
+template <typename... Args>
+auto handle_event(SDL_Event* event, int* draw, GenericWindowArgs<float*, Args...>& ds)
+{
+    auto& widget = ds.data_widget;
 
+    if (kiss_entry_event(&widget.k, event, draw))
+    {
+        auto* number = ds.data;
+        char* text   = &widget.k.text[0];
 
-    Grid2x2 grid(window);
+        // TODO: Validation.
+        printf("Validating float\n");
+        *number = std::stof(text);
+    }
+}
 
-    window_init(window_data, window, grid);
+template <typename... Args>
+auto handle_event(SDL_Event* event, int* draw, GenericWindowArgs<float const*, Args...>& ds)
+{
+}
 
-    SDL_SetRenderTarget(renderer, texture);
-    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0x00);
-    SDL_RenderClear(renderer);
+template <typename Tp, typename... Args>
+auto editor_handle_events(GenericWindowArgs<Tp, Args...>& ds, SDL_Event* event, int* draw)
+{
+    handle_event(event, draw, ds);
 
-    kiss_window_draw(window, renderer);
-    window_draw(window_data, renderer);
-
-    SDL_SetRenderTarget(renderer, nullptr);
+    if constexpr (sizeof...(Args) > 0)
+    {
+        editor_handle_events(ds.args, event, draw);
+    }
 }
 
 #endif // PROPERTY_EDITOR_HPP
