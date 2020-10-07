@@ -426,6 +426,7 @@ auto detect_soft_collisions(Player&                    player,
 
 int main()
 {
+
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
 
@@ -460,12 +461,26 @@ int main()
     GameHud  game_hud;
 
     kiss_window editor_window;
-    WindowData  window_data;
-    make_window_from_values(editor_window,
-                            kiss_screen,
-                            kiss_screen_width / 2,
-                            kiss_screen_height / 2,
-                            window_data);
+
+    SDL_Rect window_rect{0, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
+    center_a_in_b(window_rect, kiss_screen);
+
+    kiss_window_new(&editor_window,
+                    NULL,
+                    1,
+                    window_rect.x,
+                    window_rect.y,
+                    window_rect.w,
+                    window_rect.h);
+    editor_window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
+    editor_window.visible = 1;
+
+    // make_window_from_values(editor_window,
+    //                         kiss_screen,
+    //                         kiss_screen_width / 2,
+    //                         kiss_screen_height / 2,
+    //                         window_data);
+
 
     if (renderer == nullptr)
     {
@@ -501,6 +516,7 @@ int main()
     assert(game_entities.size() == soft_boundaries.size());
     assert(walls.size() == hard_boundaries.size());
 
+
     while (!game_events.quit)
     {
         game_loop.start();
@@ -516,7 +532,7 @@ int main()
             handle_input(e, game_events);
             dev_hud.handle_events(&e, &draw, game_events);
             game_hud.handle_events(&e, &draw, game_events);
-            window_handle_events(&e, &draw, window_data);
+            // window_handle_events(&e, &draw, window_data);
         }
 
         // Update gameplay.
@@ -645,7 +661,10 @@ int main()
                                &dev_hud.window.rect);
             }
 
-            window_render(renderer, nullptr, window_data, editor_window);
+            // window_render(renderer, nullptr, window_data, editor_window);
+            assert(&editor_window);
+            assert(renderer);
+            test_function(&editor_window, renderer, nullptr);
             SDL_RenderPresent(renderer);
         }
 

@@ -55,6 +55,13 @@ auto window_data_add_concrete_tp(WindowData& window, char const* label, bool* da
 
 
 template <typename Tp>
+auto window_data_add_readonly_tp(WindowData& window, char const* label, Tp const*data)
+{
+
+}
+
+
+template <typename Tp>
 auto window_data_add(WindowData& window_data, std::tuple<char const*, Tp*> data)
 {
     window_data_add_concrete_tp(window_data, std::get<0>(data), std::get<1>(data));
@@ -64,6 +71,13 @@ template <typename Tp, typename... Args>
 auto window_data_add(WindowData& window_data, std::tuple<char const*, Tp*> data, Args... args)
 {
     window_data_add_concrete_tp(window_data, std::get<0>(data), std::get<1>(data));
+    window_data_add(window_data, args...);
+}
+
+template <typename Tp, typename... Args>
+auto window_data_add(WindowData& window_data, std::tuple<char const*, Tp const*> data, Args... args)
+{
+    window_data_add_readonly_tp(window_data, std::get<0>(data), std::get<1>(data));
     window_data_add(window_data, args...);
 }
 
