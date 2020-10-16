@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "devhud.h"
 #include "entity.hpp"
 #include "fmt/core.h"
 #include "gameevents.h"
@@ -13,22 +12,23 @@
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
 #include "misc.hpp"
+#include "propertyeditor.hpp"
 #include "recthelper.hpp"
 #include "screen.h"
 #include "serialisation.hpp"
 #include "shapes.hpp"
 #include "typedefs.h"
-// #include "spdlog/spdlog.h"
 
+// #include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <complex>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <numeric>
 #include <string>
 #include <vector>
-
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -79,8 +79,7 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         case SDLK_SPACE:
             break;
         case SDLK_h:
-            game_events.hud = game_events.hud ? 0 : 1;
-            printf("hud\n");
+            game_events.hud = !game_events.hud;
             break;
         case SDLK_ESCAPE:
             game_events.quit = 1;
@@ -109,6 +108,7 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
 
 //////////////////////////////////////////////////////////////////////////////
 
+// TODO: Relocate
 template <typename Tp, std::size_t M, std::size_t N>
 void draw(SDL_Renderer* renderer, linalg::Matrix<Tp, M, N>& mat)
 {
@@ -222,6 +222,7 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
     return new_texture;
 }
 
+// TODO: Relocate this.
 void println(char const* message, float number)
 {
     printf("%s", message);
@@ -424,16 +425,11 @@ auto detect_soft_collisions(Player&                    player,
     }
 }
 
-#include <filesystem>
-
 int main(int argc, char* argv[])
 {
     std::string           argv_str(argv[0]);
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
-
-    // fmt::print("{0}  {1}\n", argv_str, base);
-
 
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
@@ -452,7 +448,14 @@ int main(int argc, char* argv[])
     std::vector<SDL_FRect>    soft_boundaries;
     std::vector<SDL_FRect>    hard_boundaries;
 
-    serialisation::load(game_state_path, game_events);
+    if (std::filesystem::exists(game_state_path))
+    {
+        serialisation::load(game_state_path, game_events);
+    }
+    else
+    {
+        fmt::print("{0} does not exist.", game_state_path.c_str());
+    }
 
     kiss_array_new(&objects);
     renderer = kiss_init("Hello kiss_sdl",
@@ -465,12 +468,30 @@ int main(int argc, char* argv[])
                          0,
                          kiss_screen_width,
                          kiss_screen_height};
-    DevHud   dev_hud(kiss_screen,
-                   kiss_screen_width / 2,
-                   kiss_screen_height / 2);
-    dev_hud.init(game_events);
+    GameHud  game_hud;
 
-    GameHud game_hud;
+    // TODO: Refactor DataStructure name
+    // TODO: Refactor how the window, texture and grid are all created.
+    DataStructure window_data(
+        std::tuple{"FPS", &game_loop.fps},
+        std::tuple{"Draw Minkowski", &game_events.draw_minkowski},
+        std::tuple{"Show Vectors", &game_events.draw_vectors},
+        std::tuple{"Player x", (const float*)&player.e.X[0][0]},
+        std::tuple{"Player y", (const float*)&player.e.X[0][1]});
+
+    kiss_window editor_window;
+    kiss_window_new(&editor_window,
+                    NULL,
+                    1,
+                    kiss_screen.x,
+                    kiss_screen.y,
+                    kiss_screen.w / 2,
+                    kiss_screen.h);
+    editor_window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
+    editor_window.visible = 1;
+
+    Grid2x2 grid(&editor_window);
+    window_init(window_data, &editor_window, grid);
 
     if (renderer == nullptr)
     {
@@ -517,10 +538,9 @@ int main(int argc, char* argv[])
                 game_events.quit = 1;
             }
 
-            kiss_window_event(&dev_hud.window, &e, &draw);
-            handle_input(e, game_events);
-            dev_hud.handle_events(&e, &draw, game_events);
+            editor_handle_events(window_data, &e, &draw);
             game_hud.handle_events(&e, &draw, game_events);
+            handle_input(e, game_events);
         }
 
         // Update gameplay.
@@ -627,11 +647,8 @@ int main(int argc, char* argv[])
         // Render dev hud. This is a bit wasteful if the hud is not enabled
         // however for not it is good to do so we can keep an eye on CPU usage.
         {
-            dev_hud.update(game_loop.time_taken,
-                           game_loop.fps,
-                           game_events.player_movement);
-
-            dev_hud.render(renderer, dev_hud_texture);
+            window_update(window_data);
+            window_render(renderer, dev_hud_texture, &editor_window, window_data);
         }
 
         // Copy textures from kiss to the screen.
@@ -645,12 +662,14 @@ int main(int argc, char* argv[])
             {
                 SDL_RenderCopy(renderer,
                                dev_hud_texture,
-                               &dev_hud.window.rect,
-                               &dev_hud.window.rect);
+                               &editor_window.rect,
+                               &editor_window.rect);
             }
+
 
             SDL_RenderPresent(renderer);
         }
+
 
         game_loop.end();
         game_loop.delay();

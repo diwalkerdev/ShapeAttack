@@ -11,8 +11,8 @@ struct GameEvents {
 
     linalg::Matrixf<2, 2> player_movement = 0;
 
-    int draw_vectors   = 0;
-    int draw_minkowski = 0;
+    bool draw_vectors   = 0;
+    bool draw_minkowski = 0;
 
     MSGPACK_DEFINE(draw_vectors, draw_minkowski);
 };
