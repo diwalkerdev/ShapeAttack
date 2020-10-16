@@ -65,7 +65,7 @@ struct EntityStatic {
 //////////////////////////////////////////////////////////////////////////////
 
 
-auto sdl_rect(Entity const& entity)
+inline auto sdl_rect(Entity const& entity)
 {
     SDL_FRect rect;
 
@@ -77,12 +77,12 @@ auto sdl_rect(Entity const& entity)
     return rect;
 }
 
-auto sdl_rect(EntityStatic const& entity)
+inline auto sdl_rect(EntityStatic const& entity)
 {
     return entity.r;
 }
 
-auto sdl_rect_center(Entity const& entity)
+inline auto sdl_rect_center(Entity const& entity)
 {
     auto r = sdl_rect(entity);
     return sdl_rect_center(r);
@@ -90,7 +90,7 @@ auto sdl_rect_center(Entity const& entity)
 
 //////////////////////////////////////////////////////////////////////////////
 
-auto is_point_in_rect(float x, float y, SDL_FRect const& rect)
+inline auto is_point_in_rect(float x, float y, SDL_FRect const& rect)
 {
     bool in_x = (x > rect.x) && (x < (rect.x + rect.w));
     bool in_y = (y > rect.y) && (y < (rect.y + rect.h));
@@ -146,7 +146,7 @@ auto minkowski_boundary(Tp&& entity, linalg::Vectorf<2> const& origin)
 
 //////////////////////////////////////////////////////////////////////////////
 
-auto make_food()
+inline auto make_food()
 {
     EntityStatic food;
     food.r           = {200.f, 100.f, 40.f, 40.f};
@@ -156,7 +156,7 @@ auto make_food()
     return food;
 }
 
-auto make_wall()
+inline auto make_wall()
 {
     EntityStatic wall;
     wall.r           = {300.f, 200.f, 40.f, 40.f};
@@ -166,7 +166,7 @@ auto make_wall()
     return wall;
 }
 
-auto make_player()
+inline auto make_player()
 {
     constexpr float mass  = 1.f;
     constexpr float imass = 1.f / mass;

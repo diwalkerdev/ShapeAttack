@@ -4,6 +4,7 @@
 #include "linalg/matrix.hpp"
 #include "msgpack.hpp"
 
+// TODO Refactor. GameEvents is really a combination of event information and dev options.
 struct GameEvents {
     int quit = 0;
     int hud  = 0;
