@@ -257,8 +257,8 @@ int main(int argc, char* argv[])
         std::tuple{"FPS", &game_loop.fps},
         std::tuple{"Draw Minkowski", &game_events.draw_minkowski},
         std::tuple{"Show Vectors", &game_events.draw_vectors},
-        std::tuple{"entity::Player x", (const float*)&player.e.X[0][0]},
-        std::tuple{"entity::Player y", (const float*)&player.e.X[0][1]});
+        std::tuple{"Player x", (const float*)&player.e.X[0][0]},
+        std::tuple{"Player y", (const float*)&player.e.X[0][1]});
 
     kiss_window editor_window;
     kiss_window_new(&editor_window,
