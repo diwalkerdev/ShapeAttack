@@ -1,5 +1,8 @@
+#include "collision/core.hpp"
 #include "entity/core.hpp"
 #include <vector>
+
+namespace collision {
 
 void detect_soft_collisions(entity::Player&                    player,
                             std::vector<entity::EntityStatic>& game_entities,
@@ -14,9 +17,9 @@ void detect_soft_collisions(entity::Player&                    player,
         auto& boundary = soft_boundaries[entity_idx];
         auto& entity   = game_entities[entity_idx];
 
-        bool collided = entity::is_point_in_rect(player.e.X[0][0],
-                                                 player.e.X[0][1],
-                                                 boundary);
+        bool collided = collision::is_point_in_rect(player.e.X[0][0],
+                                                    player.e.X[0][1],
+                                                    boundary);
 
         if (collided && entity.alive)
         {
@@ -31,4 +34,6 @@ void detect_soft_collisions(entity::Player&                    player,
             }
         }
     }
+}
+
 }

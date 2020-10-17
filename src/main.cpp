@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "collision/core.hpp"
 #include "drawing/core.hpp"
 #include "entity/core.hpp"
 #include "fmt/core.h"
@@ -190,27 +191,14 @@ void create_game_objects(linalg::Vectorf<2>                 origin,
 
     for (entity::EntityStatic& entity : walls)
     {
-        hard_boundaries.push_back(minkowski_boundary(entity, origin));
+        hard_boundaries.push_back(collision::minkowski_boundary(entity, origin));
     }
     for (entity::EntityStatic& entity : game_entities)
     {
-        soft_boundaries.push_back(minkowski_boundary(entity, origin));
+        soft_boundaries.push_back(collision::minkowski_boundary(entity, origin));
     }
 }
 
-
-extern void detect_hard_collisions(float                                    dt,
-                                   float                                    dt_step,
-                                   int                                      loop_idx,
-                                   GameEvents const&                        game_events,
-                                   entity::Player&                          player,
-                                   std::vector<entity::EntityStatic> const& walls,
-                                   std::vector<SDL_FRect> const&            hard_boundaries,
-                                   bool&                                    collided);
-
-extern void detect_soft_collisions(entity::Player&                    player,
-                                   std::vector<entity::EntityStatic>& game_entities,
-                                   std::vector<SDL_FRect>&            soft_boundaries);
 
 namespace serialisation {
 extern auto save(std::filesystem::path const&, GameEvents&) -> void;
@@ -351,8 +339,8 @@ int main(int argc, char* argv[])
             {
                 player.e.update(dt_step, game_events.player_movement);
 
-                detect_hard_collisions(dt, dt_step, loop_idx, game_events, player, walls, hard_boundaries, collided);
-                detect_soft_collisions(player, game_entities, soft_boundaries);
+                collision::detect_hard_collisions(dt, dt_step, loop_idx, game_events, player, walls, hard_boundaries, collided);
+                collision::detect_soft_collisions(player, game_entities, soft_boundaries);
             }
 
             player.update();

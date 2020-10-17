@@ -1,7 +1,11 @@
+#include "collision/core.hpp"
 #include "entity/core.hpp"
 #include "gameevents.h"
+#include "recthelper.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
+
+namespace collision {
 
 void detect_hard_collisions(float                                    dt,
                             float                                    dt_step,
@@ -25,9 +29,9 @@ void detect_hard_collisions(float                                    dt,
         {
             linalg::Vectorf<2> c, r, p;
 
-            collided = entity::is_point_in_rect(player.e.X[0][0],
-                                                player.e.X[0][1],
-                                                boundary);
+            collided = collision::is_point_in_rect(player.e.X[0][0],
+                                                   player.e.X[0][1],
+                                                   boundary);
 
             if (!collided)
             {
@@ -49,8 +53,8 @@ void detect_hard_collisions(float                                    dt,
                 float ex    = uxdot * (entity.r.w * 0.5);
                 float ey    = uydot * (entity.r.h * 0.5);
 
-                c = sdl_rect_center(player.e);
-                r = sdl_rect_center(entity.r);
+                c = entity::rect_center(player);
+                r = entity::rect_center(entity);
 
                 auto d = T(c - r);
 
@@ -145,4 +149,6 @@ void detect_hard_collisions(float                                    dt,
             } // if collision.
         } // collision block.
     } // game entity loop.
+}
+
 }

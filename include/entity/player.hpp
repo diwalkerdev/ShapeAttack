@@ -52,4 +52,9 @@ inline auto make_player()
     return player;
 }
 
+inline auto rect_center(Player const& player)
+{
+    return entity::rect_center(player.e);
+}
+
 }
