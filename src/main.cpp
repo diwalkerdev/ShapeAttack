@@ -142,13 +142,15 @@ struct GameLoopTimer {
     }
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
 SDL_Texture* load_texture(SDL_Renderer* renderer,
                           std::string   path)
 {
-    //The final texture
+    // The final texture
     SDL_Texture* new_texture = NULL;
 
-    //Load image at specified path
+    // Load image at specified path
     SDL_Surface* loaded_surface = IMG_Load(path.c_str());
     if (loaded_surface == NULL)
     {
@@ -158,7 +160,7 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
         exit(-1);
     }
 
-    //Create texture from surface pixels
+    // Create texture from surface pixels
     new_texture = SDL_CreateTextureFromSurface(renderer, loaded_surface);
     if (new_texture == NULL)
     {
@@ -167,18 +169,13 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
     printf("Loaded %s\n", path.c_str());
 
-    //Get rid of old loaded surface
+    // Get rid of old loaded surface
     SDL_FreeSurface(loaded_surface);
 
     return new_texture;
 }
 
-// TODO: Relocate this.
-void println(char const* message, float number)
-{
-    printf("%s", message);
-    printf(": %f\n", number);
-}
+///////////////////////////////////////////////////////////////////////////////
 
 void create_game_objects(linalg::Vectorf<2>                 origin,
                          std::vector<entity::EntityStatic>& game_entities,
@@ -199,11 +196,14 @@ void create_game_objects(linalg::Vectorf<2>                 origin,
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
 namespace serialisation {
 extern auto save(std::filesystem::path const&, GameEvents&) -> void;
 extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char* argv[])
 {
