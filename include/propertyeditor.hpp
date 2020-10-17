@@ -63,9 +63,6 @@ template <typename Tp, typename... Args>
 DataStructure(std::tuple<const char*, Tp*>, Args...) -> DataStructure<std::tuple<const char*, Tp*>, Args...>;
 
 
-// template <typename Tp>
-// using GenericWindow = DataStructure<std::tuple<const char*, Tp>>;
-
 template <typename Tp, typename... Args>
 using GenericWindowArgs = DataStructure<std::tuple<const char*, Tp>, Args...>;
 

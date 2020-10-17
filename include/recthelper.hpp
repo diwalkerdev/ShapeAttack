@@ -5,7 +5,7 @@
 #include "screen.h"
 #include <SDL2/SDL.h>
 
-inline auto sdl_rect_center(SDL_FRect const& rect) -> linalg::Vectorf<2>
+inline auto rect_center(SDL_FRect const& rect) -> linalg::Vectorf<2>
 {
     return {{rect.x + (rect.w / 2.f),
              rect.y + (rect.h / 2.f)}};
