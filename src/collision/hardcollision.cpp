@@ -1,18 +1,18 @@
+#include "entity/core.hpp"
 #include "gameevents.h"
-#include "entity.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
 
-void detect_hard_collisions(float                            dt,
-                            float                            dt_step,
-                            int                              loop_idx,
-                            GameEvents const&                game_events,
-                            Player&                          player,
-                            std::vector<EntityStatic> const& walls,
-                            std::vector<SDL_FRect> const&    hard_boundaries,
-                            bool&                            collided)
+void detect_hard_collisions(float                                    dt,
+                            float                                    dt_step,
+                            int                                      loop_idx,
+                            GameEvents const&                        game_events,
+                            entity::Player&                          player,
+                            std::vector<entity::EntityStatic> const& walls,
+                            std::vector<SDL_FRect> const&            hard_boundaries,
+                            bool&                                    collided)
 {
-    Player player_copy = player;
+    entity::Player player_copy = player;
     for (int wall_idx = 0;
          (wall_idx < walls.size()) && !collided;
          ++wall_idx)
@@ -25,9 +25,9 @@ void detect_hard_collisions(float                            dt,
         {
             linalg::Vectorf<2> c, r, p;
 
-            collided = is_point_in_rect(player.e.X[0][0],
-                                        player.e.X[0][1],
-                                        boundary);
+            collided = entity::is_point_in_rect(player.e.X[0][0],
+                                                player.e.X[0][1],
+                                                boundary);
 
             if (!collided)
             {

@@ -1,10 +1,13 @@
-#ifndef GAME_ENTITY_HPP
-#define GAME_ENTITY_HPP
+#pragma once
 
 #include "linalg/matrix.hpp"
 #include "recthelper.hpp"
 #include "screen.h"
 #include <SDL2/SDL.h>
+
+namespace entity {
+
+//////////////////////////////////////////////////////////////////////////////
 
 struct Entity {
     float w, h;
@@ -29,24 +32,6 @@ struct Entity {
     }
 };
 
-struct Player {
-    Entity e;
-
-    SDL_Texture* texture;
-    float        hunger;
-
-    void update()
-    {
-        hunger -= 0.001;
-    }
-
-    void eat(float amount)
-    {
-        hunger += amount;
-        hunger = (hunger <= 1.f) ? hunger : 1.f;
-    }
-};
-
 //////////////////////////////////////////////////////////////////////////////
 
 enum class EntityKinds {
@@ -63,7 +48,6 @@ struct EntityStatic {
 };
 
 //////////////////////////////////////////////////////////////////////////////
-
 
 inline auto sdl_rect(Entity const& entity)
 {
@@ -146,54 +130,4 @@ auto minkowski_boundary(Tp&& entity, linalg::Vectorf<2> const& origin)
 
 //////////////////////////////////////////////////////////////////////////////
 
-inline auto make_food()
-{
-    EntityStatic food;
-    food.r           = {200.f, 100.f, 40.f, 40.f};
-    food.restitution = 1.f;
-    food.alive       = true;
-    food.kind_of     = EntityKinds::Food;
-    return food;
 }
-
-inline auto make_wall()
-{
-    EntityStatic wall;
-    wall.r           = {300.f, 200.f, 40.f, 40.f};
-    wall.restitution = 1.f;
-    wall.alive       = true;
-    wall.kind_of     = EntityKinds::Boundary;
-    return wall;
-}
-
-inline auto make_player()
-{
-    constexpr float mass  = 1.f;
-    constexpr float imass = 1.f / mass;
-    constexpr float k     = 0.f * imass;
-    constexpr float b     = -3.f * imass; // friction coefficient
-
-    Entity entity{0};
-    entity.w           = 80.f;
-    entity.h           = 80.f;
-    entity.imass       = imass;
-    entity.k           = k;
-    entity.restitution = 0.5;
-
-    entity.X[0][0] = 100;
-    entity.X[0][1] = 100;
-    entity.X[1][0] = 0;
-    entity.X[1][1] = 0;
-
-    entity.A = {{{0.f, 1.f}, {k, b}}};
-    entity.B = linalg::Matrixf<2, 2>::I();
-    entity.B *= 500.f;
-
-    Player player;
-    player.e      = entity;
-    player.hunger = 0.5f;
-
-    return player;
-}
-
-#endif // GAME_ENTITY_HPP

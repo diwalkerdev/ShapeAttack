@@ -3,6 +3,7 @@
 
 #include "gameevents.h"
 #include "kiss_sdl.h"
+#include "entity/core.hpp"
 #include "linalg/matrix.hpp"
 #include <SDL2/SDL.h>
 #include <string>
@@ -83,7 +84,7 @@ struct GameHud {
     {
     }
 
-    void update(Player &player)
+    void update(entity::Player &player)
     {
         hunger_bar.fraction = player.hunger;
     }

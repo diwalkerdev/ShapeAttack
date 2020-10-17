@@ -62,7 +62,7 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
     # requires = ["fmt", "spdlog", "imgui"]
     requires = ["kissSDL"]
     outputName = "Untitled2D"
-    srcDirs = ["src", "src/collision"]
+    srcDirs = ["src", "src/collision", "src/drawing"]
     includePaths = [
         "/usr/include",
         "/usr/include/SDL2",

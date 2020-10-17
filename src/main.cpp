@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "entity.hpp"
+#include "drawing/core.hpp"
+#include "entity/core.hpp"
 #include "fmt/core.h"
 #include "gameevents.h"
 #include "gamehud.h"
@@ -107,56 +108,6 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
 
 //////////////////////////////////////////////////////////////////////////////
 
-// TODO: Relocate
-template <typename Tp, std::size_t M, std::size_t N>
-void draw(SDL_Renderer* renderer, linalg::Matrix<Tp, M, N>& mat)
-{
-    for (auto i : irange<M - 1>())
-    {
-        SDL_RenderDrawLineF(renderer,
-                            mat[i][0],
-                            to_screen_y(mat[i][1]),
-                            mat[i + 1][0],
-                            to_screen_y(mat[i + 1][1]));
-    }
-}
-
-linalg::Matrixf<4, 3> vector_head{{{+0, +0, +1},
-                                   {-1, -1, +1},
-                                   {-1, +1, +1},
-                                   {+0, +0, +1}}};
-
-
-void draw_velocity_vector(SDL_Renderer* renderer, float px, float py, float vx, float vy)
-{
-    auto arrow = vector_head;
-    // TODO use column operator.
-    for (auto row : iter(arrow))
-    {
-        row[0] *= 10;
-        row[1] *= 10;
-    }
-
-    float theta = std::atan2(-vy, vx);
-
-    // TODO *=
-    arrow = arrow * rtransf(theta, px + vx, py + vy);
-
-    linalg::Matrixf<2, 3> vector_tail;
-    vector_tail[0][0] = arrow[0][0];
-    vector_tail[0][1] = arrow[0][1];
-    vector_tail[0][2] = arrow[0][2];
-
-    vector_tail[1][0] = px;
-    vector_tail[1][1] = py;
-    vector_tail[1][2] = 1;
-
-    draw(renderer, arrow);
-    draw(renderer, vector_tail);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
 struct GameLoopTimer {
     int32 start_frame, end_frame, time_taken, delay_time;
     float fps;
@@ -228,38 +179,38 @@ void println(char const* message, float number)
     printf(": %f\n", number);
 }
 
-void create_game_objects(linalg::Vectorf<2>         origin,
-                         std::vector<EntityStatic>& game_entities,
-                         std::vector<EntityStatic>& walls,
-                         std::vector<SDL_FRect>&    soft_boundaries,
-                         std::vector<SDL_FRect>&    hard_boundaries)
+void create_game_objects(linalg::Vectorf<2>                 origin,
+                         std::vector<entity::EntityStatic>& game_entities,
+                         std::vector<entity::EntityStatic>& walls,
+                         std::vector<SDL_FRect>&            soft_boundaries,
+                         std::vector<SDL_FRect>&            hard_boundaries)
 {
-    game_entities.push_back(make_food());
-    walls.push_back(make_wall());
+    game_entities.push_back(entity::make_food());
+    walls.push_back(entity::make_wall());
 
-    for (EntityStatic& entity : walls)
+    for (entity::EntityStatic& entity : walls)
     {
         hard_boundaries.push_back(minkowski_boundary(entity, origin));
     }
-    for (EntityStatic& entity : game_entities)
+    for (entity::EntityStatic& entity : game_entities)
     {
         soft_boundaries.push_back(minkowski_boundary(entity, origin));
     }
 }
 
 
-extern void detect_hard_collisions(float                            dt,
-                                   float                            dt_step,
-                                   int                              loop_idx,
-                                   GameEvents const&                game_events,
-                                   Player&                          player,
-                                   std::vector<EntityStatic> const& walls,
-                                   std::vector<SDL_FRect> const&    hard_boundaries,
-                                   bool&                            collided);
+extern void detect_hard_collisions(float                                    dt,
+                                   float                                    dt_step,
+                                   int                                      loop_idx,
+                                   GameEvents const&                        game_events,
+                                   entity::Player&                          player,
+                                   std::vector<entity::EntityStatic> const& walls,
+                                   std::vector<SDL_FRect> const&            hard_boundaries,
+                                   bool&                                    collided);
 
-extern void detect_soft_collisions(Player&                    player,
-                                   std::vector<EntityStatic>& game_entities,
-                                   std::vector<SDL_FRect>&    soft_boundaries);
+extern void detect_soft_collisions(entity::Player&                    player,
+                                   std::vector<entity::EntityStatic>& game_entities,
+                                   std::vector<SDL_FRect>&            soft_boundaries);
 
 namespace serialisation {
 extern auto save(std::filesystem::path const&, GameEvents&) -> void;
@@ -281,13 +232,13 @@ int main(int argc, char* argv[])
     GameEvents         game_events;
     GameLoopTimer      game_loop{0};
     int                draw;
-    auto               player = make_player();
+    auto               player = entity::make_player();
     linalg::Vectorf<2> origin{{-80, -80}};
 
-    std::vector<EntityStatic> game_entities;
-    std::vector<EntityStatic> walls;
-    std::vector<SDL_FRect>    soft_boundaries;
-    std::vector<SDL_FRect>    hard_boundaries;
+    std::vector<entity::EntityStatic> game_entities;
+    std::vector<entity::EntityStatic> walls;
+    std::vector<SDL_FRect>            soft_boundaries;
+    std::vector<SDL_FRect>            hard_boundaries;
 
     if (std::filesystem::exists(game_state_path))
     {
@@ -317,8 +268,8 @@ int main(int argc, char* argv[])
         std::tuple{"FPS", &game_loop.fps},
         std::tuple{"Draw Minkowski", &game_events.draw_minkowski},
         std::tuple{"Show Vectors", &game_events.draw_vectors},
-        std::tuple{"Player x", (const float*)&player.e.X[0][0]},
-        std::tuple{"Player y", (const float*)&player.e.X[0][1]});
+        std::tuple{"entity::Player x", (const float*)&player.e.X[0][0]},
+        std::tuple{"entity::Player y", (const float*)&player.e.X[0][1]});
 
     kiss_window editor_window;
     kiss_window_new(&editor_window,
@@ -406,10 +357,10 @@ int main(int argc, char* argv[])
 
             player.update();
 
-            // Player status, detect game over events.
+            // entity::Player status, detect game over events.
             if (player.hunger < 0.f)
             {
-                printf("Player starved.\n");
+                printf("entity::Player starved.\n");
                 player.hunger = 0.5;
                 // TODO: Game over event.
             }
@@ -471,7 +422,7 @@ int main(int argc, char* argv[])
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
             if (game_events.draw_vectors)
             {
-                draw_velocity_vector(renderer,
+                drawing::draw_vector(renderer,
                                      player.e.X[0][0],
                                      player.e.X[0][1],
                                      player.e.Y[1][0],
