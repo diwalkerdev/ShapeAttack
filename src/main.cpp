@@ -204,6 +204,7 @@ extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+#include "animation/core.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -281,7 +282,7 @@ int main(int argc, char* argv[])
     }
 
     player.texture = load_texture(renderer,
-                                  "/home/dwalker0044/Projects/Untitled2D/res/player.png");
+                                  "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
 
     auto* dev_hud_texture = SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_ABGR8888,
@@ -306,6 +307,13 @@ int main(int argc, char* argv[])
 
     assert(game_entities.size() == soft_boundaries.size());
     assert(walls.size() == hard_boundaries.size());
+
+    auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player.texture);
+    int  accumilator               = 0;
+    int  frame                     = 0;
+
+    animation::Direction direction = animation::Direction::RIGHT;
+
 
     while (!game_events.quit)
     {
@@ -354,6 +362,13 @@ int main(int argc, char* argv[])
             }
         }
 
+        SDL_Rect player_texture_src_rect;
+        // Animations
+        {
+            linalg::Vectorf<2> vel{{player.e.X[1][0], player.e.X[1][1]}};
+            player_texture_src_rect = animation::animate(player_texture_descriptor, vel, direction, accumilator, frame);
+        }
+
         // Render player.
         {
             SDL_SetRenderTarget(renderer, nullptr);
@@ -367,7 +382,7 @@ int main(int argc, char* argv[])
 
             SDL_RenderCopyF(renderer,
                             player.texture,
-                            &src,
+                            &player_texture_src_rect,
                             &dst);
         }
 
