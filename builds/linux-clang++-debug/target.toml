@@ -62,14 +62,15 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
     # requires = ["fmt", "spdlog", "imgui"]
     requires = ["kissSDL"]
     outputName = "Untitled2D"
-    srcDirs = ["src"]
+    srcDirs = ["src", "src/collision", "src/drawing"]
     includePaths = [
         "/usr/include",
         "/usr/include/SDL2",
         "include",
         "lib/LinAlg/include",
         "lib/fmt/include",
-        "lib/spdlog/include"
+        "lib/spdlog/include",
+        "lib/msgpack-c/include"
     ]
     libraryPaths = [
         "builds/linux-clang++-debug/fmt",

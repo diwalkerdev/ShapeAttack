@@ -13,3 +13,7 @@
 [submodule "lib/kiss_sdl"]
 	path = lib/kiss_sdl
 	url = https://github.com/actsl/kiss_sdl
+[submodule "lib/msgpack-c"]
+	path = lib/msgpack-c
+	url = git@github.com:msgpack/msgpack-c.git
+	branch = cpp_master

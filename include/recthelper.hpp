@@ -5,14 +5,14 @@
 #include "screen.h"
 #include <SDL2/SDL.h>
 
-auto sdl_rect_center(SDL_FRect const& rect) -> linalg::Vectorf<2>
+inline auto rect_center(SDL_FRect const& rect) -> linalg::Vectorf<2>
 {
     return {{rect.x + (rect.w / 2.f),
              rect.y + (rect.h / 2.f)}};
 }
 
 // TODO: r-l value duplication.
-auto to_screen_rect(SDL_FRect const& rect)
+inline auto to_screen_rect(SDL_FRect const& rect)
 {
     SDL_FRect dst = rect;
 
@@ -20,7 +20,7 @@ auto to_screen_rect(SDL_FRect const& rect)
     return dst;
 }
 
-auto to_screen_rect(SDL_FRect&& rect)
+inline auto to_screen_rect(SDL_FRect&& rect)
 {
     SDL_FRect dst = rect;
 
@@ -28,7 +28,7 @@ auto to_screen_rect(SDL_FRect&& rect)
     return dst;
 }
 
-auto center_a_in_b(SDL_Rect& a, SDL_Rect const& b)
+inline auto center_a_in_b(SDL_Rect& a, SDL_Rect const& b)
 {
     int x = (b.w - a.w) / 2.f;
     int y = (b.h - a.h) / 2.f;
