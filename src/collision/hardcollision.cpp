@@ -125,7 +125,7 @@ void detect_hard_collisions(float                                    dt,
                         auto v_x = (c_norm_x * (T(ux) * (v_norm)))[0];
 
                         // TODO: should compare restitutions and use the smallest one.
-                        pv_x = v_x * player.e.restitution;
+                        pv_x = v_x * player.restitution;
                         pv_y = uydot; // allows gliding.
                     }
                     else
@@ -136,7 +136,7 @@ void detect_hard_collisions(float                                    dt,
                         auto v_y = (c_norm_y * (T(uy) * v_norm))[0];
 
                         pv_x = uxdot; // allows gliding.
-                        pv_y = v_y * player.e.restitution;
+                        pv_y = v_y * player.restitution;
                     }
 
                     player.e.X[1][0] *= pv_x;

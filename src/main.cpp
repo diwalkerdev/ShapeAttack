@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "animation/core.hpp"
 #include "collision/core.hpp"
 #include "drawing/core.hpp"
 #include "entity/core.hpp"
@@ -204,7 +205,6 @@ extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#include "animation/core.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
     GameEvents         game_events;
     GameLoopTimer      game_loop{0};
     int                draw;
-    auto               player = entity::make_player();
+    auto               player = entity::make_player(100.f, 100.f, 80.f, 80.f);
     linalg::Vectorf<2> origin{{-80, -80}};
 
     std::vector<entity::EntityStatic> game_entities;
@@ -352,6 +352,7 @@ int main(int argc, char* argv[])
             }
 
             player.update();
+            entity::update(player.crosshair, player.e, 1.f, dt_step);
 
             // entity::Player status, detect game over events.
             if (player.hunger < 0.f)
@@ -384,6 +385,25 @@ int main(int argc, char* argv[])
                             player.texture,
                             &player_texture_src_rect,
                             &dst);
+        }
+
+        // Render crosshair.
+        {
+            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+
+            // auto const& crosshair = player.crosshair;
+
+            // SDL_FRect dst = to_screen_rect(sdl_rect(crosshair.e));
+            // SDL_Rect  src{0, 0, (int)crosshair.e.w, (int)crosshair.e.h};
+
+            // SDL_RenderCopyF(renderer,
+            //                 player.texture,
+            //                 &player_texture_src_rect,
+            //                 &dst);
+
+            auto const& entity = player.crosshair.e;
+            SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
+            SDL_RenderFillRectF(renderer, &fdst);
         }
 
         // Render game entities.

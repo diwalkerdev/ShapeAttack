@@ -20,10 +20,6 @@ struct Entity {
     linalg::Matrixf<2, 2> A;
     linalg::Matrixf<2, 2> B;
 
-    float imass;
-    float k, b; // friction.
-    float restitution;
-
     void update(float dt, linalg::Matrixf<2, 2> const& u)
     {
         Xdot = (X + (dt * A * X)) + (dt * B * u);
@@ -49,16 +45,12 @@ struct EntityStatic {
 
 //////////////////////////////////////////////////////////////////////////////
 
-inline auto sdl_rect(Entity const& entity)
+inline SDL_FRect sdl_rect(Entity const& entity)
 {
-    SDL_FRect rect;
-
-    rect.x = entity.X[0][0];
-    rect.y = entity.X[0][1];
-    rect.w = entity.w;
-    rect.h = entity.h;
-
-    return rect;
+    return {entity.X[0][0],
+            entity.X[0][1],
+            entity.w,
+            entity.h};
 }
 
 inline auto rect_center(Entity const& entity)

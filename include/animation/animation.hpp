@@ -100,8 +100,6 @@ auto animate(LRUPTextureMapDescriptor<Frames>& desc, linalg::Vectorf<2> const& v
     auto theta = std::atan2(-vel[1], vel[0]);
     auto mag   = magnitude(vel);
 
-    println("mag", mag);
-
     // This transforms theta from -pi -> pi to 0 -> 2*pi/
     if (theta < 0)
     {

@@ -1,14 +1,19 @@
 #pragma once
 
+#include "entity/crosshair.hpp"
 #include "entity/entity.hpp"
 
 namespace entity {
 
+///////////////////////////////////////////////////////////////////////////////
+
 struct Player {
-    entity::Entity e;
+    entity::Entity    e;
+    entity::Crosshair crosshair;
 
     SDL_Texture* texture;
     float        hunger;
+    float        restitution;
 
     void update()
     {
@@ -22,7 +27,9 @@ struct Player {
     }
 };
 
-inline auto make_player()
+///////////////////////////////////////////////////////////////////////////////
+
+inline auto make_player(float x0, float y0, float width, float height)
 {
     constexpr float mass  = 1.f;
     constexpr float imass = 1.f / mass;
@@ -30,14 +37,11 @@ inline auto make_player()
     constexpr float b     = -3.f * imass; // friction coefficient
 
     Entity entity{0};
-    entity.w           = 80.f;
-    entity.h           = 80.f;
-    entity.imass       = imass;
-    entity.k           = k;
-    entity.restitution = 0.5;
+    entity.w = width;
+    entity.h = height;
 
-    entity.X[0][0] = 100;
-    entity.X[0][1] = 100;
+    entity.X[0][0] = x0;
+    entity.X[0][1] = y0;
     entity.X[1][0] = 0;
     entity.X[1][1] = 0;
 
@@ -46,8 +50,10 @@ inline auto make_player()
     entity.B *= 500.f;
 
     Player player;
-    player.e      = entity;
-    player.hunger = 0.5f;
+    player.e           = entity;
+    player.crosshair   = entity::make_crosshair();
+    player.hunger      = 0.5f;
+    player.restitution = 0.5f;
 
     return player;
 }
