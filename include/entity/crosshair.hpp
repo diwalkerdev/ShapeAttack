@@ -8,7 +8,8 @@ namespace entity {
 struct Crosshair {
     entity::Entity e;
 
-    // This is where the player is pointing, not the angle of the entity.
+    // This is where the player is pointing, not the rotation of the entity.
+    // Remember this represents angular position and angular velocity.
     linalg::Vectorf<2> R;
 };
 

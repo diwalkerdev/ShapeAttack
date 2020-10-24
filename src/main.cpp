@@ -5,6 +5,7 @@
 
 #include "animation/core.hpp"
 #include "collision/core.hpp"
+#include "containers/backfill_vector.hpp"
 #include "drawing/core.hpp"
 #include "entity/core.hpp"
 #include "fmt/core.h"
@@ -61,6 +62,7 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         case SDLK_LSHIFT:
             break;
         case SDLK_SPACE:
+            game_events.fire = 0;
             break;
         default:
             break;
@@ -91,6 +93,7 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         case SDLK_LSHIFT:
             break;
         case SDLK_SPACE:
+            game_events.fire = 1;
             break;
         case SDLK_h:
             game_events.hud = !game_events.hud;
@@ -218,8 +221,35 @@ extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void test_bf_vector()
+{
+    backfill_vector<int, 5> bfvec;
+    println("size:", bfvec.size());
+
+    int i = 0;
+    bfvec.push_back(i++);
+    bfvec.push_back(i++);
+    bfvec.push_back(i++);
+    bfvec.push_back(i++);
+    bfvec.push_back(i++);
+
+    println("size b4:", bfvec.size());
+    bfvec.remove(4);
+    println("size:", bfvec.size());
+    bfvec.remove(2);
+    println("size:", bfvec.size());
+    bfvec.remove(0);
+    println("size:", bfvec.size());
+
+    for (auto x : bfvec)
+    {
+        println("item:", x);
+    }
+}
+
 int main(int argc, char* argv[])
 {
+    test_bf_vector();
     std::string           argv_str(argv[0]);
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
@@ -341,6 +371,11 @@ int main(int argc, char* argv[])
             editor_handle_events(window_data, &e, &draw);
             game_hud.handle_events(&e, &draw, game_events);
             handle_input(e, game_events);
+
+            if (game_events.fire)
+            {
+                player.fire();
+            }
         }
 
         // Update gameplay.
@@ -365,7 +400,7 @@ int main(int argc, char* argv[])
 
             player.update();
             entity::update(player.crosshair, player.e, game_events.player_rotation, dt_step);
-
+            update_bullets<10>(player.bullets, dt);
             // entity::Player status, detect game over events.
             if (player.hunger < 0.f)
             {
@@ -416,6 +451,28 @@ int main(int argc, char* argv[])
             auto const& entity = player.crosshair.e;
             SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
             SDL_RenderFillRectF(renderer, &fdst);
+        }
+
+        // Render bullets.
+        {
+            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+
+            // auto const& crosshair = player.crosshair;
+
+            // SDL_FRect dst = to_screen_rect(sdl_rect(crosshair.e));
+            // SDL_Rect  src{0, 0, (int)crosshair.e.w, (int)crosshair.e.h};
+
+            // SDL_RenderCopyF(renderer,
+            //                 player.texture,
+            //                 &player_texture_src_rect,
+            //                 &dst);
+
+            for (auto& bullet : player.bullets)
+            {
+                auto const& entity = bullet.e;
+                SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
+                SDL_RenderFillRectF(renderer, &fdst);
+            }
         }
 
         // Render game entities.

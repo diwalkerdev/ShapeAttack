@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers/backfill_vector.hpp"
 #include "entity/crosshair.hpp"
 #include "entity/entity.hpp"
 
@@ -7,9 +8,37 @@ namespace entity {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+struct Bullet {
+    entity::Entity e;
+    float          angle;
+};
+
+inline void update_bullet(Bullet& bullet, float dt)
+{
+    auto x = cosf(bullet.angle) * 100;
+    auto y = -sinf(bullet.angle) * 100;
+
+    linalg::Matrixf<2, 2> u{{{x, y}, {0, 0}}};
+    bullet.e.update(dt, u);
+}
+
+template <std::size_t Nm>
+void update_bullets(backfill_vector<Bullet, Nm>& bullets, float dt)
+{
+    for (auto& bullet : bullets)
+    {
+        update_bullet(bullet, dt);
+    }
+
+    // TODO: Reuse bullets when they go off the screen.
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 struct Player {
     entity::Entity    e;
     entity::Crosshair crosshair;
+    backfill_vector<Bullet, 10> bullets;
 
     SDL_Texture* texture;
     float        hunger;
@@ -25,7 +54,24 @@ struct Player {
         hunger += amount;
         hunger = (hunger <= 1.f) ? hunger : 1.f;
     }
+
+    void fire()
+    {
+        if (bullets.size() < bullets.max_size())
+        {
+            Bullet bullet{{0},
+                          crosshair.R[0]};
+            bullet.e.A = {{{0, 0}, {0, 0}}};
+            bullet.e.B = {{{1, 0}, {0, 1}}};
+            bullet.e.X = e.X;
+            center_on_center(bullet.e, e);
+            bullet.e.w = 10;
+            bullet.e.h = 10;
+            bullets.push_back(bullet);
+        }
+    }
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 

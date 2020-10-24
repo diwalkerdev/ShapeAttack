@@ -13,6 +13,7 @@ struct GameEvents {
 
     linalg::Matrixf<2, 2> player_movement = 0;
     float player_rotation = 0;
+    int                   fire;
 
     bool draw_vectors   = 0;
     bool draw_minkowski = 0;
