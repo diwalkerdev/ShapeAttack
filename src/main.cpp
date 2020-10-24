@@ -52,6 +52,12 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         case SDLK_RIGHT:
             game_events.r = 0;
             break;
+        case SDLK_a:
+            game_events.player_rotation = 0;
+            break;
+        case SDLK_d:
+            game_events.player_rotation = 0;
+            break;
         case SDLK_LSHIFT:
             break;
         case SDLK_SPACE:
@@ -75,6 +81,12 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
             break;
         case SDLK_RIGHT:
             game_events.r = 1;
+            break;
+        case SDLK_a:
+            game_events.player_rotation = -1;
+            break;
+        case SDLK_d:
+            game_events.player_rotation = 1;
             break;
         case SDLK_LSHIFT:
             break;
@@ -352,7 +364,7 @@ int main(int argc, char* argv[])
             }
 
             player.update();
-            entity::update(player.crosshair, player.e, 1.f, dt_step);
+            entity::update(player.crosshair, player.e, game_events.player_rotation, dt_step);
 
             // entity::Player status, detect game over events.
             if (player.hunger < 0.f)

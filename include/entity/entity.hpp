@@ -69,6 +69,18 @@ inline auto rect_center(EntityStatic const& entity)
     return ::rect_center(entity.r);
 }
 
+inline auto center_on_point(Entity &a, linalg::Vectorf<2> const& center)
+{
+    copy_from(a.X[0], center);
+    a.X[0] += linalg::Vectorf<2>{{-a.w / 2.f, -a.h / 2.f}};
+}
+
+inline auto center_on_center(Entity &a, Entity const&b)
+{
+    center_on_point(a, rect_center(b));
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 
 template <typename Tp>

@@ -14,7 +14,6 @@ struct Crosshair {
 
 inline auto make_crosshair()
 {
-
     entity::Entity e{0};
     e.w = 20;
     e.h = 20;
@@ -48,7 +47,7 @@ inline void update(Crosshair& crosshair, entity::Entity const& parent, float inp
 
         // linalg::Matrixf<2, 2> A{{{0, 1}, {0, k}}};
         linalg::Matrixf<2, 2> A{{{0, 0}, {0, 0}}};
-        linalg::Vectorf<2>    B{{1, 0}};
+        linalg::Vectorf<2>    B{{1, 0}}; // Remember this selects angular pos or velocity.
 
         // Currently not using any dynamics.
         auto Rdot = (R + (dt * A * R)) + ((dt * B) * u);
@@ -57,15 +56,12 @@ inline void update(Crosshair& crosshair, entity::Entity const& parent, float inp
         R = Rdot;
     }
 
-    fmt::print("angular pos:{0}  angular vel:{1}\n", y[0], y[1]);
-
     // Update position
     {
         auto& X = crosshair.e.X;
 
         // Move the crosshair to the center of the player.
-        auto center = rect_center(parent);
-        copy_from(X[0], center);
+        center_on_center(crosshair.e, parent);
 
         // Create a vector rotated by the player's aim.
         linalg::Vectorf<2> m{{80, 0}};
@@ -78,3 +74,4 @@ inline void update(Crosshair& crosshair, entity::Entity const& parent, float inp
 }
 
 }
+
