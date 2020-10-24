@@ -151,3 +151,7 @@ fabric.properties
 
 # Save files use msgpack are in msgpack format.
 *.msgpack
+
+# Language server files.
+.clangd
+compile_commands.json
