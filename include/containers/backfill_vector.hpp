@@ -107,6 +107,12 @@ struct backfill_vector {
         vector.reserve(_Nm);
     }
 
+    // Accessors.
+    reference at(std::size_t pos)
+    {
+        return vector.at(pos);
+    }
+
     // Modifiers.
     void push_back(value_type const& value) noexcept(false)
     {

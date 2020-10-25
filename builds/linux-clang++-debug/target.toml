@@ -87,19 +87,12 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
         "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
         "-fsanitize=undefined"
     ]
-    # requires = ["fmt", "spdlog"]
+    requires = ["fmt"]
     outputName = "Tests"
     srcDirs = ["test"]
     includePaths = [
-        "/usr/include/SDL2",
         "include",
         "lib/Meliorate/include",
         "lib/LinAlg/include",
         "lib/fmt/include",
-        "lib/spdlog/include",
     ]
-    libraryPaths = [
-        "builds/linux-clang++-debug/fmt",
-        "builds/linux-clang++-debug/spdlog"
-    ]
-    libraries = ["SDL2", "fmt", "spdlog"]

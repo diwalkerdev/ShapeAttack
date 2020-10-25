@@ -1,5 +1,6 @@
 #pragma once
 
+#include "algorithms/find.hpp"
 #include "collision/collision.hpp"
 #include "containers/backfill_vector.hpp"
 #include "entity/crosshair.hpp"
@@ -23,21 +24,6 @@ inline void update_bullet(Bullet& bullet, float dt)
     bullet.e.update(dt, u);
 }
 
-// TODO: implement rfind_indicies so we don't have to reverse the result when working
-// with backfill_vector.
-template <typename Tp, typename Fn>
-auto find_indices(Tp const& container, Fn predicate) -> std::vector<std::size_t>
-{
-    std::vector<std::size_t> results;
-
-    auto it = std::find_if(std::begin(container), std::end(container), predicate);
-    while (it != std::end(container))
-    {
-        results.emplace_back(std::distance(std::begin(container), it));
-        it = std::find_if(std::next(it), std::end(container), predicate);
-    }
-    return results;
-}
 
 
 template <typename Tp, std::size_t Nm>

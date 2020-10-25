@@ -221,35 +221,9 @@ extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void test_bf_vector()
-{
-    backfill_vector<int, 5> bfvec;
-    println("size:", bfvec.size());
-
-    int i = 0;
-    bfvec.push_back(i++);
-    bfvec.push_back(i++);
-    bfvec.push_back(i++);
-    bfvec.push_back(i++);
-    bfvec.push_back(i++);
-
-    println("size b4:", bfvec.size());
-    bfvec.remove(4);
-    println("size:", bfvec.size());
-    bfvec.remove(2);
-    println("size:", bfvec.size());
-    bfvec.remove(0);
-    println("size:", bfvec.size());
-
-    for (auto x : bfvec)
-    {
-        println("item:", x);
-    }
-}
 
 int main(int argc, char* argv[])
 {
-    test_bf_vector();
     std::string           argv_str(argv[0]);
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
