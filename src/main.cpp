@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
                          SCREEN_HEIGHT);
 
     // Note, you MUST create the hud after kiss_init.
-    SDL_Rect kiss_screen{0,
+    SDL_Rect screen_rect{0,
                          0,
                          kiss_screen_width,
                          kiss_screen_height};
@@ -306,10 +306,10 @@ int main(int argc, char* argv[])
     kiss_window_new(&editor_window,
                     NULL,
                     1,
-                    kiss_screen.x,
-                    kiss_screen.y,
-                    kiss_screen.w / 2,
-                    kiss_screen.h);
+                    screen_rect.x,
+                    screen_rect.y,
+                    screen_rect.w / 2,
+                    screen_rect.h);
     editor_window.bg      = {0x7f, 0x7f, 0x7f, 0x70};
     editor_window.visible = 1;
 
@@ -400,7 +400,8 @@ int main(int argc, char* argv[])
 
             player.update();
             entity::update(player.crosshair, player.e, game_events.player_rotation, dt_step);
-            update_bullets<10>(player.bullets, dt);
+            update_bullets(player.bullets, screen_rect, dt);
+
             // entity::Player status, detect game over events.
             if (player.hunger < 0.f)
             {

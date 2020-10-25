@@ -1,5 +1,6 @@
 #pragma once
 
+#include "collision/collision.hpp"
 #include "containers/backfill_vector.hpp"
 #include "entity/crosshair.hpp"
 #include "entity/entity.hpp"
@@ -22,15 +23,46 @@ inline void update_bullet(Bullet& bullet, float dt)
     bullet.e.update(dt, u);
 }
 
-template <std::size_t Nm>
-void update_bullets(backfill_vector<Bullet, Nm>& bullets, float dt)
+// TODO: implement rfind_indicies so we don't have to reverse the result when working
+// with backfill_vector.
+template <typename Tp, typename Fn>
+auto find_indices(Tp const& container, Fn predicate) -> std::vector<std::size_t>
+{
+    std::vector<std::size_t> results;
+
+    auto it = std::find_if(std::begin(container), std::end(container), predicate);
+    while (it != std::end(container))
+    {
+        results.emplace_back(std::distance(std::begin(container), it));
+        it = std::find_if(std::next(it), std::end(container), predicate);
+    }
+    return results;
+}
+
+
+template <typename Tp, std::size_t Nm>
+void update_bullets(backfill_vector<Tp, Nm>& bullets, SDL_Rect const& screen_rect, float dt)
 {
     for (auto& bullet : bullets)
     {
         update_bullet(bullet, dt);
     }
 
-    // TODO: Reuse bullets when they go off the screen.
+    auto within_screen = [&screen_rect](Tp const& bullet) {
+        auto center = rect_center(bullet.e);
+        return !collision::is_point_in_rect(center, screen_rect);
+    };
+
+    // TODO: Is there a way to do this which is less error prone?
+    // Removing several elements must be done in reverse index order.
+    auto indices = find_indices(bullets, within_screen);
+    std::reverse(indices.begin(), indices.end());
+
+    for (auto i : indices)
+    {
+        fmt::print("FREE BULLET {0}\n", i);
+        bullets.remove(i);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,6 +89,7 @@ struct Player {
 
     void fire()
     {
+        fmt::print("FIRE\n");
         if (bullets.size() < bullets.max_size())
         {
             Bullet bullet{{0},
