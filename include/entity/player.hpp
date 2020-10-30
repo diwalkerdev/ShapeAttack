@@ -41,8 +41,7 @@ void update_bullets(backfill_vector<Tp, Nm>& bullets, SDL_Rect const& screen_rec
 
     // TODO: Is there a way to do this which is less error prone?
     // Removing several elements must be done in reverse index order.
-    auto indices = find_indices(bullets, within_screen);
-    std::reverse(indices.begin(), indices.end());
+    auto indices = algorithm::rfind_indices(bullets, within_screen);
 
     for (auto i : indices)
     {

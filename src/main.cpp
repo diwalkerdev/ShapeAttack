@@ -7,6 +7,7 @@
 #include "collision/core.hpp"
 #include "containers/backfill_vector.hpp"
 #include "drawing/core.hpp"
+#include "easing/core.hpp"
 #include "entity/core.hpp"
 #include "fmt/core.h"
 #include "gameevents.h"
@@ -37,6 +38,28 @@
 
 void handle_input(SDL_Event& event, GameEvents& game_events)
 {
+
+    Uint8 const* keyboard_state = SDL_GetKeyboardState(nullptr);
+    assert(keyboard_state != nullptr);
+    // Continuous response keys.
+    if (keyboard_state[SDL_SCANCODE_F])
+    {
+        printf("FIRE PRESSED\n");
+        game_events.fire.set();
+    }
+    /*
+    if (keyboard_state[SDLK_RIGHT])
+    {
+    }
+    if (keyboard_state[SDLK_UP])
+    {
+    }
+    if (keyboard_state[SDLK_DOWN])
+    {
+    }
+    */
+
+    // Single hit keys.
     if (event.type == SDL_KEYUP)
     {
         switch (event.key.keysym.sym)
@@ -60,9 +83,6 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
             game_events.player_rotation = 0;
             break;
         case SDLK_LSHIFT:
-            break;
-        case SDLK_SPACE:
-            game_events.fire = 0;
             break;
         default:
             break;
@@ -91,9 +111,6 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
             game_events.player_rotation = 1;
             break;
         case SDLK_LSHIFT:
-            break;
-        case SDLK_SPACE:
-            game_events.fire = 1;
             break;
         case SDLK_h:
             game_events.hud = !game_events.hud;
@@ -231,10 +248,13 @@ int main(int argc, char* argv[])
     constexpr float dt      = 1.f / 30.f;
     constexpr float dt_step = dt / 4.f;
 
+    easing::Easer      easer;
     SDL_Renderer*      renderer;
     SDL_Event          e;
     kiss_array         objects;
-    GameEvents         game_events;
+
+    GameEvents game_events(easer);
+
     GameLoopTimer      game_loop{0};
     int                draw;
     auto               player = entity::make_player(100.f, 100.f, 80.f, 80.f);
@@ -254,6 +274,7 @@ int main(int argc, char* argv[])
         fmt::print("{0} does not exist.", game_state_path.c_str());
     }
 
+    // TODO: This leaks memory.
     kiss_array_new(&objects);
     renderer = kiss_init("Hello kiss_sdl",
                          &objects,
@@ -346,7 +367,7 @@ int main(int argc, char* argv[])
             game_hud.handle_events(&e, &draw, game_events);
             handle_input(e, game_events);
 
-            if (game_events.fire)
+            if (game_events.fire.get())
             {
                 player.fire();
             }
@@ -532,6 +553,8 @@ int main(int argc, char* argv[])
 
         game_loop.end();
         game_loop.delay();
+
+        easer.step(game_loop.time_taken + game_loop.delay_time);
     }
 
     serialisation::save(game_state_path, game_events);

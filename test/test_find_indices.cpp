@@ -45,6 +45,7 @@ void test_rfinds_1s()
     assert(indices[2] == 1);
 }
 
+#ifdef TEST_ALGO_FIND
 int main()
 {
     test_finds_1s();
@@ -53,3 +54,4 @@ int main()
     fmt::print("Test algorithm::find_indices complete.\n");
     return 0;
 }
+#endif

@@ -5,6 +5,19 @@ subninja $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/fmt/build.ninja
 
 build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_easing.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/test_easing.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+
+build $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_backfillvector.o: $
     compile /home/dwalker0044/Projects/Untitled2D/test/test_backfillvector.cpp
   compiler = clang++
@@ -15,7 +28,7 @@ build $
       -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
   flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
 
 build $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/meliorate_gen.o: $
@@ -28,7 +41,7 @@ build $
       -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
   flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
 
 build $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_maths.o: $
@@ -41,7 +54,7 @@ build $
       -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
   flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
 
 build $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_find_indices.o: $
@@ -54,9 +67,10 @@ build $
       -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
   flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
 
 build Tests.exe: exe $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_easing.o $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_backfillvector.o $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/meliorate_gen.o $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_maths.o $
@@ -70,7 +84,7 @@ build Tests.exe: exe $
       -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
   flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
       -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
   exe_name = Tests.exe
   linker_args = -Wl,-rpath='$$ORIGIN' $
       -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/fmt $

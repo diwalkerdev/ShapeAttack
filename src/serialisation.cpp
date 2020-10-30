@@ -89,13 +89,13 @@ auto load(std::filesystem::path const& file_path, GameEvents& events) -> void
     msgpack::object_handle oh  = msgpack::unpack(the_file.c_str(), the_file.size());
     msgpack::object        obj = oh.get();
 
-    GameEvents new_events;
-    obj.convert(new_events);
+    //GameEvents new_events;
+    obj.convert(events);
 
     // std::cout << new_events.draw_vectors << "\n";
     // std::cout << new_events.draw_minkowski << "\n";
 
-    events = new_events;
+    //events = new_events;
 }
 
 

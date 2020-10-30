@@ -43,29 +43,29 @@ struct backfill_vector {
         return vector.cend();
     }
 
-    // constexpr auto
-    // rbegin() noexcept
-    // {
-    //     return reverse_iterator(end());
-    // }
+    constexpr auto
+    rbegin() noexcept
+    {
+        return vector.rbegin();
+    }
 
-    // constexpr auto
-    // rbegin() const noexcept
-    // {
-    //     return const_reverse_iterator(end());
-    // }
+    constexpr auto
+    rbegin() const noexcept
+    {
+        return vector.rbegin();
+    }
 
-    // constexpr auto
-    // rend() noexcept
-    // {
-    //     return reverse_iterator(begin());
-    // }
+    constexpr auto
+    rend() noexcept
+    {
+        return vector.rend();
+    }
 
-    // constexpr const_reverse_iterator
-    // rend() const noexcept
-    // {
-    //     return const_reverse_iterator(begin());
-    // }
+    constexpr auto
+    rend() const noexcept
+    {
+        return vector.rend();
+    }
 
     constexpr auto
     cbegin() const noexcept
@@ -79,17 +79,17 @@ struct backfill_vector {
         return vector.cend();
     }
 
-    // constexpr const_reverse_iterator
-    // crbegin() const noexcept
-    // {
-    //     return const_reverse_iterator(vector.end());
-    // }
+    constexpr auto
+    crbegin() const noexcept
+    {
+        return vector.crbegin();
+    }
 
-    // constexpr const_reverse_iterator
-    // crend() const noexcept
-    // {
-    //     return const_reverse_iterator(vector.begin());
-    // }
+    constexpr auto
+    crend() const noexcept
+    {
+        return vector.crend();
+    }
 
     // Capacity.
     constexpr size_type

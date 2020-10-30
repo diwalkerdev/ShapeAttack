@@ -81,6 +81,7 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
 
 [[builds]]
     name = "test"
+    defines = ["-DTEST_EASING"]
     buildRule = "exe"
     flags = [
         "-fsanitize=address",
