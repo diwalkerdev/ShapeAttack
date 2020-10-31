@@ -210,22 +210,25 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void create_game_objects(linalg::Vectorf<2>                 origin,
-                         std::vector<entity::EntityStatic>& game_entities,
-                         std::vector<entity::EntityStatic>& walls,
-                         std::vector<SDL_FRect>&            soft_boundaries,
-                         std::vector<SDL_FRect>&            hard_boundaries)
+void make_hard_boundaries(entity::Entity const&              entity,
+                          std::vector<entity::EntityStatic>& game_entities,
+                          std::vector<SDL_FRect>&            hard_boundaries)
 {
-    game_entities.push_back(entity::make_food());
-    walls.push_back(entity::make_wall());
-
-    for (entity::EntityStatic& entity : walls)
+    linalg::Vectorf<2> origin{{-entity.w, -entity.h}};
+    for (auto& hard_entity : game_entities)
     {
-        hard_boundaries.push_back(collision::minkowski_boundary(entity, origin));
+        hard_boundaries.push_back(collision::minkowski_boundary(hard_entity, origin));
     }
-    for (entity::EntityStatic& entity : game_entities)
+}
+
+void make_soft_boundaries(entity::Entity const&                    entity,
+                          std::vector<entity::EntityStatic> const& game_entities,
+                          std::vector<SDL_FRect>&                  soft_boundaries)
+{
+    linalg::Vectorf<2> origin{{-entity.w, -entity.h}};
+    for (auto& soft_entity : game_entities)
     {
-        soft_boundaries.push_back(collision::minkowski_boundary(entity, origin));
+        soft_boundaries.push_back(collision::minkowski_boundary(soft_entity, origin));
     }
 }
 
@@ -257,13 +260,11 @@ int main(int argc, char* argv[])
 
     GameLoopTimer      game_loop{0};
     int                draw;
-    auto               player = entity::make_player(100.f, 100.f, 80.f, 80.f);
-    linalg::Vectorf<2> origin{{-80, -80}};
-
-    std::vector<entity::EntityStatic> game_entities;
-    std::vector<entity::EntityStatic> walls;
-    std::vector<SDL_FRect>            soft_boundaries;
-    std::vector<SDL_FRect>            hard_boundaries;
+    std::vector<entity::Player> players{
+        entity::make_player(100.f, 100.f, 80.f, 80.f),
+        entity::make_player(200.f, 100.f, 80.f, 80.f)};
+    auto& player_1 = players[0];
+    auto& player_2 = players[1];
 
     if (std::filesystem::exists(game_state_path))
     {
@@ -294,8 +295,8 @@ int main(int argc, char* argv[])
         std::tuple{"FPS", &game_loop.fps},
         std::tuple{"Draw Minkowski", &game_events.draw_minkowski},
         std::tuple{"Show Vectors", &game_events.draw_vectors},
-        std::tuple{"Player x", (const float*)&player.e.X[0][0]},
-        std::tuple{"Player y", (const float*)&player.e.X[0][1]});
+        std::tuple{"Player x", (const float*)&player_1.e.X[0][0]},
+        std::tuple{"Player y", (const float*)&player_1.e.X[0][1]});
 
     kiss_window editor_window;
     kiss_window_new(&editor_window,
@@ -318,8 +319,11 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    player.texture = load_texture(renderer,
-                                  "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
+    player_1.texture = load_texture(renderer,
+                                    "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
+
+    player_2.texture = load_texture(renderer,
+                                    "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
 
     auto* dev_hud_texture = SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_ABGR8888,
@@ -336,16 +340,31 @@ int main(int argc, char* argv[])
                                                kiss_screen_height);
     SDL_SetTextureBlendMode(game_hud_texture, SDL_BLENDMODE_BLEND);
 
-    create_game_objects(origin,
-                        game_entities,
-                        walls,
-                        soft_boundaries,
-                        hard_boundaries);
+    // Create game entities and minkowski boundaries.
+    std::vector<entity::EntityStatic> soft_entities;
+    std::vector<entity::EntityStatic> walls;
+    std::vector<SDL_FRect>            soft_boundaries;
+    std::vector<SDL_FRect>            hard_boundaries;
+    std::vector<SDL_FRect>            hard_bullet_boundaries;
 
-    assert(game_entities.size() == soft_boundaries.size());
-    assert(walls.size() == hard_boundaries.size());
+    {
+        soft_entities.push_back(entity::make_food());
+        walls.push_back(entity::make_wall());
+        {
+            make_hard_boundaries(player_1.e, walls, hard_boundaries);
+            make_soft_boundaries(player_1.e, soft_entities, soft_boundaries);
+        }
 
-    auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player.texture);
+        {
+            auto bullet_tmp = entity::make_bullet(0);
+            make_hard_boundaries(bullet_tmp.e, walls, hard_bullet_boundaries);
+        }
+
+        assert(soft_entities.size() == soft_boundaries.size());
+        assert(walls.size() == hard_boundaries.size());
+    }
+
+    auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player_1.texture);
     int  accumilator               = 0;
     int  frame                     = 0;
 
@@ -369,12 +388,12 @@ int main(int argc, char* argv[])
 
             if (game_events.fire.get())
             {
-                player.fire();
+                player_1.fire();
             }
         }
 
         // Update gameplay.
-        auto player_copy = player;
+        auto player_copy = player_1;
         bool collided    = false;
 
         // Collision detection loop.
@@ -387,21 +406,26 @@ int main(int argc, char* argv[])
                  (loop_idx < 4) && !collided;
                  ++loop_idx)
             {
-                player.e.update(dt_step, game_events.player_movement);
+                player_1.e.update(dt_step, game_events.player_movement);
 
-                collision::detect_hard_collisions(dt, dt_step, loop_idx, game_events, player, walls, hard_boundaries, collided);
-                collision::detect_soft_collisions(player, game_entities, soft_boundaries);
+                collision::detect_hard_collisions(dt, dt_step, loop_idx, game_events, player_1, walls, hard_boundaries, collided);
+                collision::detect_soft_collisions(player_1, soft_entities, soft_boundaries);
             }
 
-            player.update();
-            entity::update(player.crosshair, player.e, game_events.player_rotation, dt_step);
-            update_bullets(player.bullets, screen_rect, dt);
+            player_1.update();
+            entity::update(player_1.crosshair, player_1.e, game_events.player_rotation, dt_step);
+
+            // TODO: Remove hack that allow bullets to fire.
+            // Current the algorithm always removes bullets as they originate
+            // from inside the player. This hack allows player 1 to shoot player 2.
+            std::vector<entity::Player> hack{player_2};
+            update_bullets(player_1.bullets, hack, hard_bullet_boundaries, screen_rect, dt);
 
             // entity::Player status, detect game over events.
-            if (player.hunger < 0.f)
+            if (player_1.hunger < 0.f)
             {
                 printf("entity::Player starved.\n");
-                player.hunger = 0.5;
+                player_1.hunger = 0.5;
                 // TODO: Game over event.
             }
         }
@@ -409,7 +433,7 @@ int main(int argc, char* argv[])
         SDL_Rect player_texture_src_rect;
         // Animations
         {
-            linalg::Vectorf<2> vel{{player.e.X[1][0], player.e.X[1][1]}};
+            linalg::Vectorf<2> vel{{player_1.e.X[1][0], player_1.e.X[1][1]}};
             player_texture_src_rect = animation::animate(player_texture_descriptor, vel, direction, accumilator, frame);
         }
 
@@ -421,13 +445,16 @@ int main(int argc, char* argv[])
 
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
 
-            SDL_FRect dst = to_screen_rect(sdl_rect(player.e));
-            SDL_Rect  src{0, 0, (int)player.e.w, (int)player.e.h};
+            for (auto const& player : players)
+            {
+                SDL_FRect dst = to_screen_rect(sdl_rect(player.e));
+                SDL_Rect  src{0, 0, (int)player_1.e.w, (int)player.e.h};
 
-            SDL_RenderCopyF(renderer,
-                            player.texture,
-                            &player_texture_src_rect,
-                            &dst);
+                SDL_RenderCopyF(renderer,
+                                player.texture,
+                                &player_texture_src_rect,
+                                &dst);
+            }
         }
 
         // Render crosshair.
@@ -444,7 +471,7 @@ int main(int argc, char* argv[])
             //                 &player_texture_src_rect,
             //                 &dst);
 
-            auto const& entity = player.crosshair.e;
+            auto const& entity = player_1.crosshair.e;
             SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
             SDL_RenderFillRectF(renderer, &fdst);
         }
@@ -463,7 +490,7 @@ int main(int argc, char* argv[])
             //                 &player_texture_src_rect,
             //                 &dst);
 
-            for (auto& bullet : player.bullets)
+            for (auto& bullet : player_1.bullets)
             {
                 auto const& entity = bullet.e;
                 SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
@@ -474,7 +501,7 @@ int main(int argc, char* argv[])
         // Render game entities.
         {
             SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
-            for (auto& entity : game_entities)
+            for (auto& entity : soft_entities)
             {
                 if (entity.alive)
                 {
@@ -511,16 +538,16 @@ int main(int argc, char* argv[])
             if (game_events.draw_vectors)
             {
                 drawing::draw_vector(renderer,
-                                     player.e.X[0][0],
-                                     player.e.X[0][1],
-                                     player.e.Y[1][0],
-                                     player.e.Y[1][1]);
+                                     player_1.e.X[0][0],
+                                     player_1.e.X[0][1],
+                                     player_1.e.Y[1][0],
+                                     player_1.e.Y[1][1]);
             }
         }
 
         // Render game hud.
         {
-            game_hud.update(player);
+            game_hud.update(player_1);
             game_hud.render(renderer, game_hud_texture);
         }
 

@@ -25,32 +25,20 @@ inline void update_bullet(Bullet& bullet, float dt)
 }
 
 
-
-template <typename Tp, std::size_t Nm>
-void update_bullets(backfill_vector<Tp, Nm>& bullets, SDL_Rect const& screen_rect, float dt)
-{
-    for (auto& bullet : bullets)
-    {
-        update_bullet(bullet, dt);
-    }
-
-    auto within_screen = [&screen_rect](Tp const& bullet) {
-        auto center = rect_center(bullet.e);
-        return !collision::is_point_in_rect(center, screen_rect);
-    };
-
-    // TODO: Is there a way to do this which is less error prone?
-    // Removing several elements must be done in reverse index order.
-    auto indices = algorithm::rfind_indices(bullets, within_screen);
-
-    for (auto i : indices)
-    {
-        fmt::print("FREE BULLET {0}\n", i);
-        bullets.remove(i);
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////////////
+
+inline Bullet make_bullet(float angle)
+{
+    Bullet bullet{{0}, angle};
+    bullet.e.A = {{{0, 0}, {0, 0}}};
+    bullet.e.B = {{{1, 0}, {0, 1}}};
+    // bullet.e.X = e.X;
+    // center_on_center(bullet.e, e);
+    bullet.e.w = 10;
+    bullet.e.h = 10;
+
+    return bullet;
+}
 
 struct Player {
     entity::Entity    e;
@@ -77,14 +65,16 @@ struct Player {
         fmt::print("FIRE\n");
         if (bullets.size() < bullets.max_size())
         {
-            Bullet bullet{{0},
-                          crosshair.R[0]};
-            bullet.e.A = {{{0, 0}, {0, 0}}};
-            bullet.e.B = {{{1, 0}, {0, 1}}};
+            auto bullet = make_bullet(crosshair.R[0]);
+            // Bullet bullet{{0},
+            //               crosshair.R[0]};
+            // bullet.e.A = {{{0, 0}, {0, 0}}};
+            // bullet.e.B = {{{1, 0}, {0, 1}}};
+            // bullet.e.w = 10;
+            // bullet.e.h = 10;
+
             bullet.e.X = e.X;
             center_on_center(bullet.e, e);
-            bullet.e.w = 10;
-            bullet.e.h = 10;
             bullets.push_back(bullet);
         }
     }
@@ -121,10 +111,73 @@ inline auto make_player(float x0, float y0, float width, float height)
 
     return player;
 }
+///////////////////////////////////////////////////////////////////////////////
 
 inline auto rect_center(Player const& player)
 {
     return entity::rect_center(player.e);
 }
+///////////////////////////////////////////////////////////////////////////////
 
+template <typename Tp, std::size_t Nm>
+void update_bullets(backfill_vector<Tp, Nm>&           bullets,
+                    std::vector<entity::Player> const& players,
+                    std::vector<SDL_FRect> const&      hard_entities,
+                    SDL_Rect const&                    screen_rect,
+                    float                              dt)
+{
+    for (auto& bullet : bullets)
+    {
+        update_bullet(bullet, dt);
+    }
+
+    for (auto const& player : players)
+    {
+        // TODO: Remove creating lambda on each iteration.
+        auto collided_hard = [&player](Tp const& bullet) {
+            auto center = rect_center(bullet.e);
+            return collision::is_point_in_rect(center, sdl_rect(player.e));
+        };
+
+        auto indices = algorithm::rfind_indices(bullets, collided_hard);
+
+        for (auto i : indices)
+        {
+            fmt::print("FREE BULLET HARD {0}\n", i);
+            bullets.remove(i);
+        }
+    }
+    for (auto const& hard_entity : hard_entities)
+    {
+        // TODO: Remove creating lambda on each iteration.
+        auto collided_hard = [&hard_entity](Tp const& bullet) {
+            linalg::Vectorf<2> origin{{bullet.e.X[0][0], bullet.e.X[0][1]}};
+            return collision::is_point_in_rect(origin, hard_entity);
+        };
+
+        auto indices = algorithm::rfind_indices(bullets, collided_hard);
+
+        for (auto i : indices)
+        {
+            fmt::print("FREE BULLET HARD {0}\n", i);
+            bullets.remove(i);
+        }
+    }
+
+
+    auto within_screen = [&screen_rect](Tp const& bullet) {
+        auto center = rect_center(bullet.e);
+        return !collision::is_point_in_rect(center, screen_rect);
+    };
+
+    // TODO: Is there a way to do this which is less error prone?
+    // Removing several elements must be done in reverse index order.
+    auto indices = algorithm::rfind_indices(bullets, within_screen);
+
+    for (auto i : indices)
+    {
+        fmt::print("FREE BULLET SCREEN {0}\n", i);
+        bullets.remove(i);
+    }
+}
 }
