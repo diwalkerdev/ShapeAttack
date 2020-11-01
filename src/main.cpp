@@ -243,6 +243,44 @@ extern auto load(std::filesystem::path const&, GameEvents&) -> void;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+auto make_respawn_points(SDL_Rect const&               screen,
+                         std::vector<SDL_FRect> const& hard_boundaries)
+{
+    auto xseg = screen.w / 10.f;
+    auto yseg = screen.h / 10.f;
+
+    std::vector<linalg::Vectorf<2>> valid_spawn_points;
+
+    for (int i = 0; i < 10; ++i)
+    {
+        for (int j = 0; j < 10; ++j)
+        {
+            linalg::Vectorf<2> point{{xseg * j, yseg * i}};
+            for (auto const& hard_entity : hard_boundaries)
+            {
+                auto collided = collision::is_point_in_rect(point, hard_entity);
+                if (!collided)
+                {
+                    valid_spawn_points.push_back(point);
+                }
+            }
+        }
+    }
+
+    assert(valid_spawn_points.size() > 10);
+    return valid_spawn_points;
+}
+
+auto player_respawn(entity::Player&                        player,
+                    std::vector<linalg::Vectorf<2>> const& valid_points)
+{
+    int  index = std::rand() % valid_points.size();
+    auto point = valid_points.at(index);
+    // TODO: Player should have a respawn function for setting these values.
+    player.e.X[0][0] = point[0];
+    player.e.X[0][1] = point[1];
+    player.health    = 1;
+}
 
 int main(int argc, char* argv[])
 {
@@ -290,6 +328,7 @@ int main(int argc, char* argv[])
                          kiss_screen_width,
                          kiss_screen_height};
     GameHud  game_hud;
+
 
     // TODO: Refactor DataStructure name
     // TODO: Refactor how the window, texture and grid are all created.
@@ -365,6 +404,8 @@ int main(int argc, char* argv[])
         assert(soft_entities.size() == soft_boundaries.size());
         assert(walls.size() == hard_boundaries.size());
     }
+
+    auto respawn_points = make_respawn_points(screen_rect, hard_boundaries);
 
     auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player_1.texture);
     int  accumilator               = 0;
@@ -442,8 +483,7 @@ int main(int argc, char* argv[])
             {
                 if (player.health < 0.f)
                 {
-                    printf("entity::Player died.\n");
-                    // respawn_player(player, respawn_points);
+                    player_respawn(player, respawn_points);
                 }
             }
         }
