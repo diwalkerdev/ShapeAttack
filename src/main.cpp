@@ -44,8 +44,10 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
     // Continuous response keys.
     if (keyboard_state[SDL_SCANCODE_F])
     {
-        printf("FIRE PRESSED\n");
-        game_events.fire.set();
+        if (game_events.fire.set())
+        {
+            fmt::print("FIRE!\n");
+        }
     }
     /*
     if (keyboard_state[SDLK_RIGHT])
@@ -406,27 +408,43 @@ int main(int argc, char* argv[])
                  (loop_idx < 4) && !collided;
                  ++loop_idx)
             {
-                player_1.e.update(dt_step, game_events.player_movement);
+                player_1.e.update(dt_step,
+                                  game_events.player_movement);
 
-                collision::detect_hard_collisions(dt, dt_step, loop_idx, game_events, player_1, walls, hard_boundaries, collided);
-                collision::detect_soft_collisions(player_1, soft_entities, soft_boundaries);
+                collision::detect_hard_collisions(dt,
+                                                  dt_step,
+                                                  loop_idx,
+                                                  game_events,
+                                                  player_1,
+                                                  walls,
+                                                  hard_boundaries,
+                                                  collided);
+
+                // TODO: Why does soft_collisions not take a dt?
+                collision::detect_soft_collisions(player_1,
+                                                  soft_entities,
+                                                  soft_boundaries);
             }
 
             player_1.update();
-            entity::update(player_1.crosshair, player_1.e, game_events.player_rotation, dt_step);
+            entity::update(player_1.crosshair,
+                           player_1.e,
+                           game_events.player_rotation,
+                           dt_step);
 
-            // TODO: Remove hack that allow bullets to fire.
-            // Current the algorithm always removes bullets as they originate
-            // from inside the player. This hack allows player 1 to shoot player 2.
-            std::vector<entity::Player> hack{player_2};
-            update_bullets(player_1.bullets, hack, hard_bullet_boundaries, screen_rect, dt);
+            update_bullets(player_1,
+                           players,
+                           hard_bullet_boundaries,
+                           screen_rect,
+                           dt);
 
-            // entity::Player status, detect game over events.
-            if (player_1.hunger < 0.f)
+            for (auto& player : players)
             {
-                printf("entity::Player starved.\n");
-                player_1.hunger = 0.5;
-                // TODO: Game over event.
+                if (player.health < 0.f)
+                {
+                    printf("entity::Player died.\n");
+                    // respawn_player(player, respawn_points);
+                }
             }
         }
 
@@ -547,7 +565,7 @@ int main(int argc, char* argv[])
 
         // Render game hud.
         {
-            game_hud.update(player_1);
+            game_hud.update(player_2);
             game_hud.render(renderer, game_hud_texture);
         }
 

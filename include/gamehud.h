@@ -8,7 +8,7 @@
 #include <SDL2/SDL.h>
 #include <string>
 
-auto anchor_a_top_of_b(SDL_Rect* a, SDL_Rect* b, int height)
+inline auto anchor_a_top_of_b(SDL_Rect* a, SDL_Rect* b, int height)
 {
     a->x = 0;
     a->y = 0;
@@ -86,7 +86,7 @@ struct GameHud {
 
     void update(entity::Player &player)
     {
-        hunger_bar.fraction = player.hunger;
+        hunger_bar.fraction = player.health;
     }
 
 

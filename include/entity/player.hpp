@@ -32,8 +32,6 @@ inline Bullet make_bullet(float angle)
     Bullet bullet{{0}, angle};
     bullet.e.A = {{{0, 0}, {0, 0}}};
     bullet.e.B = {{{1, 0}, {0, 1}}};
-    // bullet.e.X = e.X;
-    // center_on_center(bullet.e, e);
     bullet.e.w = 10;
     bullet.e.h = 10;
 
@@ -46,23 +44,31 @@ struct Player {
     backfill_vector<Bullet, 10> bullets;
 
     SDL_Texture* texture;
-    float        hunger;
+    float        health;
     float        restitution;
 
     void update()
     {
-        hunger -= 0.001;
+        // This function can be used to update and status effects.
     }
 
-    void eat(float amount)
+    // TODO: This should be moved outside the class so Player doesn't
+    // need to know about everything it can be hit with.
+    void hit(entity::Bullet const& bullet)
     {
-        hunger += amount;
-        hunger = (hunger <= 1.f) ? hunger : 1.f;
+        const float amount = 0.2;
+
+        health -= amount;
+    }
+
+    void restore()
+    {
+        const float amount = 0.2;
+        health += amount;
     }
 
     void fire()
     {
-        fmt::print("FIRE\n");
         if (bullets.size() < bullets.max_size())
         {
             auto bullet = make_bullet(crosshair.R[0]);
@@ -106,7 +112,7 @@ inline auto make_player(float x0, float y0, float width, float height)
     Player player;
     player.e           = entity;
     player.crosshair   = entity::make_crosshair();
-    player.hunger      = 0.5f;
+    player.health      = 0.5f;
     player.restitution = 0.5f;
 
     return player;
@@ -117,26 +123,43 @@ inline auto rect_center(Player const& player)
 {
     return entity::rect_center(player.e);
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename Tp, std::size_t Nm>
-void update_bullets(backfill_vector<Tp, Nm>&           bullets,
-                    std::vector<entity::Player> const& players,
-                    std::vector<SDL_FRect> const&      hard_entities,
-                    SDL_Rect const&                    screen_rect,
-                    float                              dt)
+inline void update_bullets(entity::Player&               player,
+                           std::vector<entity::Player>&  players,
+                           std::vector<SDL_FRect> const& hard_entities,
+                           SDL_Rect const&               screen_rect,
+                           float                         dt)
 {
+    auto& bullets = player.bullets;
+
+    // Update the bullet positions.
+    //
     for (auto& bullet : bullets)
     {
         update_bullet(bullet, dt);
     }
 
-    for (auto const& player : players)
+    // Check if bullets have hit any of the other players.
+    //
+    for (auto& other_player : players)
     {
+        if (std::addressof(player) == std::addressof(other_player))
+        {
+            continue;
+        }
+
         // TODO: Remove creating lambda on each iteration.
-        auto collided_hard = [&player](Tp const& bullet) {
+        auto collided_hard = [&other_player](Bullet const& bullet) {
             auto center = rect_center(bullet.e);
-            return collision::is_point_in_rect(center, sdl_rect(player.e));
+            auto collided = collision::is_point_in_rect(center,
+                                                        sdl_rect(other_player.e));
+            if (collided)
+            {
+                other_player.hit(bullet);
+            }
+            return collided;
         };
 
         auto indices = algorithm::rfind_indices(bullets, collided_hard);
@@ -147,10 +170,13 @@ void update_bullets(backfill_vector<Tp, Nm>&           bullets,
             bullets.remove(i);
         }
     }
+
+    // Check if the bullets have hit any walls.
+    //
     for (auto const& hard_entity : hard_entities)
     {
         // TODO: Remove creating lambda on each iteration.
-        auto collided_hard = [&hard_entity](Tp const& bullet) {
+        auto collided_hard = [&hard_entity](Bullet const& bullet) {
             linalg::Vectorf<2> origin{{bullet.e.X[0][0], bullet.e.X[0][1]}};
             return collision::is_point_in_rect(origin, hard_entity);
         };
@@ -164,8 +190,9 @@ void update_bullets(backfill_vector<Tp, Nm>&           bullets,
         }
     }
 
-
-    auto within_screen = [&screen_rect](Tp const& bullet) {
+    // Check if the bullets have left the screen.
+    //
+    auto within_screen = [&screen_rect](Bullet const& bullet) {
         auto center = rect_center(bullet.e);
         return !collision::is_point_in_rect(center, screen_rect);
     };

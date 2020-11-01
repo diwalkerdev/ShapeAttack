@@ -91,7 +91,7 @@ struct Debounce {
     }
 
     // Modifiers
-    auto set() -> void
+    auto set() -> bool
     {
         auto& data = ref.get();
         switch (data.state)
@@ -99,10 +99,10 @@ struct Debounce {
         case DebounceState::DEFAULT: {
             data.state   = DebounceState::RUNNING;
             data.time_ms = data.timeout_ms;
-            break;
+            return true;
         }
         default: {
-            break;
+            return false;
         }
         }
     }

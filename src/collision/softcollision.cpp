@@ -28,7 +28,10 @@ void detect_soft_collisions(entity::Player&                    player,
             case entity::EntityKinds::Food: {
                 printf("Collided with food\n");
                 entity.alive = false;
-                player.eat(0.5);
+                player.restore();
+                break;
+            }
+            case entity::EntityKinds::Boundary: {
                 break;
             }
             }
