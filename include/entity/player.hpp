@@ -52,14 +52,6 @@ struct Player {
         // This function can be used to update and status effects.
     }
 
-    // TODO: This should be moved outside the class so Player doesn't
-    // need to know about everything it can be hit with.
-    void hit(entity::Bullet const& bullet)
-    {
-        const float amount = 0.2;
-
-        health -= amount;
-    }
 
     void restore()
     {
@@ -67,18 +59,18 @@ struct Player {
         health += amount;
     }
 
+    void respawn(linalg::Vectorf<2> const& point)
+    {
+        e.X[0][0] = point[0];
+        e.X[0][1] = point[1];
+        health    = 1;
+    }
+
     void fire()
     {
         if (bullets.size() < bullets.max_size())
         {
             auto bullet = make_bullet(crosshair.R[0]);
-            // Bullet bullet{{0},
-            //               crosshair.R[0]};
-            // bullet.e.A = {{{0, 0}, {0, 0}}};
-            // bullet.e.B = {{{1, 0}, {0, 1}}};
-            // bullet.e.w = 10;
-            // bullet.e.h = 10;
-
             bullet.e.X = e.X;
             center_on_center(bullet.e, e);
             bullets.push_back(bullet);
@@ -126,6 +118,15 @@ inline auto rect_center(Player const& player)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+inline void hit(entity::Player& player, entity::Bullet const& bullet)
+{
+    const float amount = 0.2;
+
+    player.health -= amount;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 inline void update_bullets(entity::Player&               player,
                            std::vector<entity::Player>&  players,
                            std::vector<SDL_FRect> const& hard_entities,
@@ -152,12 +153,12 @@ inline void update_bullets(entity::Player&               player,
 
         // TODO: Remove creating lambda on each iteration.
         auto collided_hard = [&other_player](Bullet const& bullet) {
-            auto center = rect_center(bullet.e);
+            auto center   = rect_center(bullet.e);
             auto collided = collision::is_point_in_rect(center,
                                                         sdl_rect(other_player.e));
             if (collided)
             {
-                other_player.hit(bullet);
+                hit(other_player, bullet);
             }
             return collided;
         };

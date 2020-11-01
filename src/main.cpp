@@ -276,6 +276,7 @@ auto player_respawn(entity::Player&                        player,
 {
     int  index = std::rand() % valid_points.size();
     auto point = valid_points.at(index);
+    player.respawn(point);
     // TODO: Player should have a respawn function for setting these values.
     player.e.X[0][0] = point[0];
     player.e.X[0][1] = point[1];
