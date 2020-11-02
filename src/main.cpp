@@ -36,54 +36,30 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
-void handle_input(SDL_Event& event, GameEvents& game_events)
+void handle_input(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
 {
+    int l, r, u, d;
+    int cw, cc; // clockwise, counter clockwise
+    int fire;
 
     Uint8 const* keyboard_state = SDL_GetKeyboardState(nullptr);
-    assert(keyboard_state != nullptr);
-    // Continuous response keys.
-    if (keyboard_state[SDL_SCANCODE_F])
-    {
-        if (game_events.fire.set())
-        {
-            fmt::print("FIRE!\n");
-        }
-    }
-    /*
-    if (keyboard_state[SDLK_RIGHT])
-    {
-    }
-    if (keyboard_state[SDLK_UP])
-    {
-    }
-    if (keyboard_state[SDLK_DOWN])
-    {
-    }
-    */
+
+    fire = keyboard_state[SDL_SCANCODE_F];
+    game_events.fire.set(fire);
+
+    l = keyboard_state[SDL_SCANCODE_LEFT];
+    r = keyboard_state[SDL_SCANCODE_RIGHT];
+    u = keyboard_state[SDL_SCANCODE_UP];
+    d = keyboard_state[SDL_SCANCODE_DOWN];
+
+    cw = keyboard_state[SDL_SCANCODE_D];
+    cc = keyboard_state[SDL_SCANCODE_A];
 
     // Single hit keys.
     if (event.type == SDL_KEYUP)
     {
         switch (event.key.keysym.sym)
         {
-        case SDLK_UP:
-            game_events.u = 0;
-            break;
-        case SDLK_DOWN:
-            game_events.d = 0;
-            break;
-        case SDLK_LEFT:
-            game_events.l = 0;
-            break;
-        case SDLK_RIGHT:
-            game_events.r = 0;
-            break;
-        case SDLK_a:
-            game_events.player_rotation = 0;
-            break;
-        case SDLK_d:
-            game_events.player_rotation = 0;
-            break;
         case SDLK_LSHIFT:
             break;
         default:
@@ -94,28 +70,10 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
     {
         switch (event.key.keysym.sym)
         {
-        case SDLK_UP:
-            game_events.u = 1;
-            break;
-        case SDLK_DOWN:
-            game_events.d = 1;
-            break;
-        case SDLK_LEFT:
-            game_events.l = 1;
-            break;
-        case SDLK_RIGHT:
-            game_events.r = 1;
-            break;
-        case SDLK_a:
-            game_events.player_rotation = -1;
-            break;
-        case SDLK_d:
-            game_events.player_rotation = 1;
-            break;
         case SDLK_LSHIFT:
             break;
         case SDLK_h:
-            game_events.hud = !game_events.hud;
+            dev_opts.display_hud = !dev_opts.display_hud;
             break;
         case SDLK_ESCAPE:
             game_events.quit = 1;
@@ -126,12 +84,14 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
     }
 
     {
-        float x_axis = game_events.r - game_events.l;
-        float y_axis = game_events.u - game_events.d;
+        int   x_input = r - l;
+        int   y_input = u - d;
+        float x_axis  = static_cast<float>(x_input);
+        float y_axis  = static_cast<float>(y_input);
 
-        if (x_axis != 0 && y_axis != 0)
+        if (x_input && y_input)
         {
-            float norm = std::sqrt((x_axis * x_axis) + (y_axis * y_axis));
+            float norm = std::sqrt((x_input * x_input) + (y_input * y_input));
             x_axis /= norm;
             y_axis /= norm;
         }
@@ -139,6 +99,8 @@ void handle_input(SDL_Event& event, GameEvents& game_events)
         game_events.player_movement = {
             {{0.f, 0.f},
              {x_axis, y_axis}}};
+
+        game_events.player_rotation = cw - cc;
     }
 }
 
@@ -237,8 +199,8 @@ void make_soft_boundaries(entity::Entity const&                    entity,
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace serialisation {
-extern auto save(std::filesystem::path const&, GameEvents&) -> void;
-extern auto load(std::filesystem::path const&, GameEvents&) -> void;
+extern auto save(std::filesystem::path const&, DevOptions&) -> void;
+extern auto load(std::filesystem::path const&, DevOptions&) -> void;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -277,10 +239,6 @@ auto player_respawn(entity::Player&                        player,
     int  index = std::rand() % valid_points.size();
     auto point = valid_points.at(index);
     player.respawn(point);
-    // TODO: Player should have a respawn function for setting these values.
-    player.e.X[0][0] = point[0];
-    player.e.X[0][1] = point[1];
-    player.health    = 1;
 }
 
 int main(int argc, char* argv[])
@@ -298,6 +256,7 @@ int main(int argc, char* argv[])
     kiss_array         objects;
 
     GameEvents game_events(easer);
+    DevOptions dev_opts;
 
     GameLoopTimer      game_loop{0};
     int                draw;
@@ -309,7 +268,7 @@ int main(int argc, char* argv[])
 
     if (std::filesystem::exists(game_state_path))
     {
-        serialisation::load(game_state_path, game_events);
+        serialisation::load(game_state_path, dev_opts);
     }
     else
     {
@@ -335,8 +294,8 @@ int main(int argc, char* argv[])
     // TODO: Refactor how the window, texture and grid are all created.
     DataStructure window_data(
         std::tuple{"FPS", &game_loop.fps},
-        std::tuple{"Draw Minkowski", &game_events.draw_minkowski},
-        std::tuple{"Show Vectors", &game_events.draw_vectors},
+        std::tuple{"Draw Minkowski", &dev_opts.draw_minkowski},
+        std::tuple{"Show Vectors", &dev_opts.draw_vectors},
         std::tuple{"Player x", (const float*)&player_1.e.X[0][0]},
         std::tuple{"Player y", (const float*)&player_1.e.X[0][1]});
 
@@ -428,7 +387,7 @@ int main(int argc, char* argv[])
 
             editor_handle_events(window_data, &e, &draw);
             game_hud.handle_events(&e, &draw, game_events);
-            handle_input(e, game_events);
+            handle_input(e, game_events, dev_opts);
 
             if (game_events.fire.get())
             {
@@ -576,7 +535,7 @@ int main(int argc, char* argv[])
                 SDL_RenderFillRectF(renderer, &fdst);
             }
 
-            if (game_events.draw_minkowski)
+            if (dev_opts.draw_minkowski)
             {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
 
@@ -594,7 +553,7 @@ int main(int argc, char* argv[])
             }
 
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
-            if (game_events.draw_vectors)
+            if (dev_opts.draw_vectors)
             {
                 drawing::draw_vector(renderer,
                                      player_1.e.X[0][0],
@@ -624,7 +583,7 @@ int main(int argc, char* argv[])
                            &game_hud.window.rect,
                            &game_hud.window.rect);
 
-            if (game_events.hud)
+            if (dev_opts.display_hud)
             {
                 SDL_RenderCopy(renderer,
                                dev_hud_texture,
@@ -643,7 +602,7 @@ int main(int argc, char* argv[])
         easer.step(game_loop.time_taken + game_loop.delay_time);
     }
 
-    serialisation::save(game_state_path, game_events);
+    serialisation::save(game_state_path, dev_opts);
 
     kiss_clean(&objects);
 }

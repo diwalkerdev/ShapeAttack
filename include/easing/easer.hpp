@@ -91,8 +91,13 @@ struct Debounce {
     }
 
     // Modifiers
-    auto set() -> bool
+    auto set(bool value) -> bool
     {
+        if (!value)
+        {
+            return false;
+        }
+
         auto& data = ref.get();
         switch (data.state)
         {

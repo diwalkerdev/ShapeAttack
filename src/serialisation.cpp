@@ -41,7 +41,7 @@ namespace serialisation {
 // }
 
 
-auto save(std::filesystem::path const& file_path, GameEvents& events) -> void
+auto save(std::filesystem::path const& file_path, DevOptions& events) -> void
 {
     std::cout << "Serialisation::Saving\n";
 
@@ -62,7 +62,7 @@ auto save(std::filesystem::path const& file_path, GameEvents& events) -> void
     ofile.close();
 }
 
-auto load(std::filesystem::path const& file_path, GameEvents& events) -> void
+auto load(std::filesystem::path const& file_path, DevOptions& events) -> void
 {
     std::cout << "Serialisation::Loading\n";
 
@@ -89,7 +89,6 @@ auto load(std::filesystem::path const& file_path, GameEvents& events) -> void
     msgpack::object_handle oh  = msgpack::unpack(the_file.c_str(), the_file.size());
     msgpack::object        obj = oh.get();
 
-    //GameEvents new_events;
     obj.convert(events);
 
     // std::cout << new_events.draw_vectors << "\n";
