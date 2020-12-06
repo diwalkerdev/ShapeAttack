@@ -1,0 +1,60 @@
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_easing.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/test_easing.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_backfillvector.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/test_backfillvector.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/meliorate_gen.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/meliorate_gen.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_maths.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/test_maths.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/test/test_find_indices.o: $
+    compile /home/dwalker0044/Projects/Untitled2D/test/test_find_indices.cpp
+  compiler = clang++
+  includes = -I/home/dwalker0044/Projects/Untitled2D/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/Meliorate/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include
+  flags = -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined
+  defines = -DSPDLOG_FMT_EXTERNAL -DTEST_EASING
+

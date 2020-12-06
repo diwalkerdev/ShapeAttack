@@ -4,93 +4,6 @@ include $
 subninja $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/build.ninja
 
-build $
-    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/serialisation.o: $
-    compile /home/dwalker0044/Projects/Untitled2D/src/serialisation.cpp
-  compiler = clang++
-  includes = -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/msgpack-c/include $
-      -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
-  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL $
-      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
-
-build $
-    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/main.o: $
-    compile /home/dwalker0044/Projects/Untitled2D/src/main.cpp
-  compiler = clang++
-  includes = -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/msgpack-c/include $
-      -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
-  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL $
-      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
-
-build $
-    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/softcollision.o: $
-    compile $
-    /home/dwalker0044/Projects/Untitled2D/src/collision/softcollision.cpp
-  compiler = clang++
-  includes = -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/msgpack-c/include $
-      -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
-  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL $
-      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
-
-build $
-    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/hardcollision.o: $
-    compile $
-    /home/dwalker0044/Projects/Untitled2D/src/collision/hardcollision.cpp
-  compiler = clang++
-  includes = -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/msgpack-c/include $
-      -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
-  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL $
-      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
-
-build $
-    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/drawvector.o: $
-    compile /home/dwalker0044/Projects/Untitled2D/src/drawing/drawvector.cpp
-  compiler = clang++
-  includes = -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/LinAlg/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/fmt/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/spdlog/include $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/msgpack-c/include $
-      -I/usr/include -I/usr/include/SDL2 $
-      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
-  flags = -std=c++20 -O0 -g -fsanitize=address -fno-omit-frame-pointer $
-      -fsanitize=undefined
-  defines = -DSPDLOG_FMT_EXTERNAL $
-      -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
-
 build Untitled2D.exe: exe $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/serialisation.o $
     /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/main.o $
@@ -118,6 +31,9 @@ build Untitled2D.exe: exe $
       -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/fmt $
       -L/home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/spdlog $
       -lSDL2_image -lSDL2_ttf -lSDL2 -lfmt -lspdlog
+
+include $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/untitled2d/compile.ninja
 
 build untitled2d: phony Untitled2D.exe
 
