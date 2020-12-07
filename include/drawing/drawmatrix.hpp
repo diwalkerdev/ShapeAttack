@@ -11,7 +11,7 @@ namespace drawing {
 template <typename Tp, std::size_t M, std::size_t N>
 void draw_matrix(SDL_Renderer* renderer, linalg::Matrix<Tp, M, N>& mat)
 {
-    for (auto i : irange<M - 1>())
+    for (std::size_t i = 0; i < (M - 1); ++i)
     {
         SDL_RenderDrawLineF(renderer,
                             mat[i][0],

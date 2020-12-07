@@ -154,4 +154,5 @@ fabric.properties
 
 # Language server files.
 .clangd
+.cache
 compile_commands.json

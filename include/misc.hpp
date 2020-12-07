@@ -2,7 +2,7 @@
 #define SHAPE_MISC
 
 #include "fmt/core.h"
-#include "linalg/matrix.hpp"
+#include "linalg/core.hpp"
 
 template <typename Tp, std::size_t M, std::size_t N>
 struct fmt::formatter<linalg::Matrix<Tp, M, N>> {

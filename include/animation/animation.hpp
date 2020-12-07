@@ -1,5 +1,5 @@
 #pragma once
-#include "linalg/matrix.hpp"
+#include "linalg/core.hpp"
 #include "misc.hpp"
 #include "typedefs.h"
 #include <SDL2/SDL.h>
@@ -98,7 +98,7 @@ template <int Frames>
 auto animate(LRUPTextureMapDescriptor<Frames>& desc, linalg::Vectorf<2> const& vel, Direction& direction, int& accumilator, int& frame)
 {
     auto theta = std::atan2(-vel[1], vel[0]);
-    auto mag   = magnitude(vel);
+    auto mag   = linalg::magnitude(vel);
 
     // This transforms theta from -pi -> pi to 0 -> 2*pi/
     if (theta < 0)

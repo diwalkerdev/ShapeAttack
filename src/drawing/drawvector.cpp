@@ -1,6 +1,5 @@
 #include "drawing/drawmatrix.hpp"
-#include "linalg/matrix.hpp"
-#include "linalg/trans.hpp"
+#include "linalg/core.hpp"
 #include <SDL2/SDL.h>
 
 namespace drawing {
@@ -15,7 +14,7 @@ void draw_vector(SDL_Renderer* renderer, float px, float py, float vx, float vy)
 {
     auto arrow = vector_head;
     // TODO use column operator.
-    for (auto row : iter(arrow))
+    for (auto row : linalg::iter(arrow))
     {
         row[0] *= 10;
         row[1] *= 10;
