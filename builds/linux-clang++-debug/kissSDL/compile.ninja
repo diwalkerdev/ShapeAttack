@@ -38,3 +38,16 @@ build $
       -fsanitize=undefined
   defines = -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
 
+build $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/libkiss_sdl.a: $
+    archive $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/kiss_draw.o $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/kiss_general.o $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/kiss_posix.o $
+    /home/dwalker0044/Projects/Untitled2D/builds/linux-clang++-debug/kissSDL/kiss_widgets.o
+  archiver = ar
+  includes = -I/usr/include -I/usr/include/SDL2 $
+      -I/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl
+  flags = -O0 -g -fsanitize=address -fno-omit-frame-pointer $
+      -fsanitize=undefined
+  defines = -DRESDIR=\"/home/dwalker0044/Projects/Untitled2D/lib/kiss_sdl/\"
