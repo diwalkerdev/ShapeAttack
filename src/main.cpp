@@ -177,11 +177,9 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void make_hard_boundaries(entity::Entity const*              entity,
-                          std::vector<entity::EntityStatic>& game_entities,
-                          std::vector<SDL_FRect>&            hard_boundaries)
+void make_hard_boundaries(float width, float height, std::vector<entity::EntityStatic>& game_entities, std::vector<SDL_FRect>& hard_boundaries)
 {
-    linalg::Vectorf<2> origin{{-entity->w, -entity->h}};
+    linalg::Vectorf<2> origin{{-width, -height}};
     for (auto& hard_entity : game_entities)
     {
         hard_boundaries.push_back(collision::minkowski_boundary(hard_entity, origin));
@@ -271,11 +269,6 @@ int main(int argc, char* argv[])
     auto& player_1 = players[0];
     auto& player_2 = players[1];
 
-    printf("A Player 1 x: %f\n", alloca.data[0].X[0][0]);
-
-    printf("A Player 1 px: %p\n", &alloca.data[0].X[0][0]);
-    printf("B Player 1 px: %p\n", &player_1.s->X[0][0]);
-
     if (std::filesystem::exists(game_state_path))
     {
         serialisation::load(game_state_path, dev_opts);
@@ -362,13 +355,17 @@ int main(int argc, char* argv[])
         soft_entities.push_back(entity::make_food());
         walls.push_back(entity::make_wall());
         {
-            make_hard_boundaries(player_1.s, walls, hard_boundaries);
-            make_soft_boundaries(player_1.s, soft_entities, soft_boundaries);
+            make_hard_boundaries(player_1.s->w,
+                                 player_1.s->h,
+                                 walls,
+                                 hard_boundaries);
+            make_soft_boundaries(player_1.s,
+                                 soft_entities,
+                                 soft_boundaries);
         }
 
         {
-            auto bullet_tmp = entity::make_bullet(0);
-            make_hard_boundaries(&bullet_tmp.e, walls, hard_bullet_boundaries);
+            make_hard_boundaries(entity::BULLET_WIDTH, entity::BULLET_HEIGHT, walls, hard_bullet_boundaries);
         }
 
         assert(soft_entities.size() == soft_boundaries.size());
@@ -407,7 +404,6 @@ int main(int argc, char* argv[])
 
 #ifdef DISABLE_SIM
 #else
-        printf("Simulating\n");
         // Update gameplay.
         auto player_copy = player_1;
         bool collided    = false;
@@ -515,8 +511,9 @@ int main(int argc, char* argv[])
             //                 &player_texture_src_rect,
             //                 &dst);
 
-            auto const& entity = player_1.crosshair.e;
-            SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
+            auto const* e = player_1.crosshair.s;
+
+            SDL_FRect fdst = to_screen_rect(sdl_rect(e));
             SDL_RenderFillRectF(renderer, &fdst);
         }
 
@@ -536,8 +533,7 @@ int main(int argc, char* argv[])
 
             for (auto& bullet : player_1.bullets)
             {
-                auto const& entity = bullet.e;
-                SDL_FRect   fdst   = to_screen_rect(sdl_rect(entity));
+                SDL_FRect fdst = to_screen_rect(sdl_rect(bullet.s));
                 SDL_RenderFillRectF(renderer, &fdst);
             }
         }

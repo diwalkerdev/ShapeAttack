@@ -13,24 +13,30 @@ void test_size_increases_when_items_pushed()
 {
     backfill_vector<int, 5> bfv;
 
-    bfv.push_back(0);
+    bfv.increase();
     assert(bfv.size() == 1);
 
-    bfv.push_back(0);
-    bfv.push_back(0);
-    bfv.push_back(0);
-    bfv.push_back(0);
+    bfv.increase();
+    bfv.increase();
+    bfv.increase();
+    bfv.increase();
     assert(bfv.size() == 5);
 }
 
 auto make_bfv_12345() -> backfill_vector<int, 5>
 {
     backfill_vector<int, 5> bfv;
-    bfv.push_back(1);
-    bfv.push_back(2);
-    bfv.push_back(3);
-    bfv.push_back(4);
-    bfv.push_back(5);
+    bfv.increase();
+    bfv.increase();
+    bfv.increase();
+    bfv.increase();
+    bfv.increase();
+    int index = 1;
+    for (int& item : bfv)
+    {
+        item = index;
+        index += 1;
+    }
     return bfv;
 }
 
@@ -38,6 +44,7 @@ void test_size_decreases_when_items_removed()
 {
     auto bfv = make_bfv_12345();
 
+    assert(bfv.size() == 5);
     bfv.remove(4);
     assert(bfv.size() == 4);
     bfv.remove(3);
@@ -48,6 +55,28 @@ void test_size_decreases_when_items_removed()
     assert(bfv.size() == 1);
     bfv.remove(0);
     assert(bfv.size() == 0);
+}
+
+void test_riterators()
+{
+    auto bfv = make_bfv_12345();
+    auto rb  = bfv.rbegin();
+    auto re  = bfv.rend();
+
+    assert(*(re - 1) == 1);
+    assert(*(rb - 0) == 5);
+
+    bfv.remove(4);
+    rb = bfv.rbegin();
+    re = bfv.rend();
+    assert(*(re - 1) == 1);
+    assert(*(rb - 0) == 4);
+
+    bfv.remove(3);
+    rb = bfv.rbegin();
+    re = bfv.rend();
+    assert(*(re - 1) == 1);
+    assert(*(rb - 0) == 3);
 }
 
 
@@ -81,15 +110,18 @@ void test_vector_back_fills_when_items_removed()
     assert(bfv.at(0) == 4);
 }
 
-/*
+#ifdef TEST_BACKFILL
+
 int main()
 {
     test_starts_empty();
     test_size_increases_when_items_pushed();
     test_size_decreases_when_items_removed();
-    test_vector_back_fills_when_items_removed();
+    test_riterators();
+    //test_vector_back_fills_when_items_removed();
 
     fmt::print("Test backfill vector complete.\n");
     return 0;
 }
-*/
+
+#endif

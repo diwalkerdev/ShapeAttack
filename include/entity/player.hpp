@@ -12,8 +12,10 @@ namespace entity {
 ///////////////////////////////////////////////////////////////////////////////
 
 struct Bullet {
-    entity::Entity e;
+    entity::Entity* s;
+    entity::Entity* r;
     float          angle;
+
 };
 
 inline void update_bullet(Bullet& bullet, float dt)
@@ -22,30 +24,40 @@ inline void update_bullet(Bullet& bullet, float dt)
     auto y = -sinf(bullet.angle) * 100;
 
     linalg::Matrixf<2, 2> u{{{x, y}, {0, 0}}};
-    update(bullet.e, dt, u);
+    entity::set_input(bullet.s, u);
+    entity::integrate(bullet.s, dt);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////
+const float BULLET_WIDTH  = 10;
+const float BULLET_HEIGHT = 10;
 
-inline Bullet make_bullet(float angle)
+inline void init_bullet(Bullet* bullet, Allocator& alloca, float angle)
 {
-    Bullet bullet{{0}, angle};
-    bullet.e.A = {{{0, 0}, {0, 0}}};
-    bullet.e.B = {{{1, 0}, {0, 1}}};
-    bullet.e.w = 10;
-    bullet.e.h = 10;
+    int index;
+    reserve(alloca, index);
+
+    bullet->s     = &alloca.data[index];
+    bullet->r     = &alloca.interpolated[index];
+    bullet->angle = angle;
+
+    auto* e = bullet->s;
+    e->A    = {{{0, 0}, {0, 0}}};
+    e->B    = {{{1, 0}, {0, 1}}};
+    e->w    = BULLET_WIDTH;
+    e->h    = BULLET_HEIGHT;
+}
+
+inline Bullet make_bullet(Allocator& alloca, float angle)
+{
+    Bullet bullet;
+    init_bullet(&bullet, alloca, angle);
 
     return bullet;
 }
 
 struct Player {
-    Player()              = default;
-    Player(Player const&) = default;
-    Player(Player&&)      = delete;
-    Player& operator=(Player const&) = default;
-    Player& operator=(Player&&) = delete;
-
     entity::Entity* s;
     entity::Entity* r;
 
@@ -74,14 +86,16 @@ struct Player {
     {
         if (bullets.size() < bullets.max_size())
         {
-            entity::Entity e = *s;
+            auto& bullet = bullets.increase();
 
-            auto bullet = make_bullet(crosshair.R[0]);
+            //entity::Entity e = *s;
+
+            //auto bullet = make_bullet(crosshair.R[0]);
+
             // TODO: is this necessary if we center on center immediately afterwards?
-            bullet.e.X = e.X;
+            // bullet.e.X = e.X;
 
-            center_on_center(bullet.e, e);
-            bullets.push_back(bullet);
+            center_on_center(bullet.s, this->s);
         }
     }
 };
@@ -126,9 +140,16 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
     entity->B = linalg::Matrixf<2, 2>::I();
     entity->B *= 500.f;
 
-    player.crosshair   = entity::make_crosshair();
+    player.crosshair   = entity::make_crosshair(alloca);
     player.health      = 0.5f;
     player.restitution = 0.5f;
+
+    // We need to initialise all the bullets, even though they are not in use.
+    // Hence why we use std::for_each with back() rather than a normal foreach
+    // loop as bullets is effectively empty.
+    std::for_each(player.bullets.begin(), player.bullets.back(), [&alloca](Bullet& bullet) {
+        init_bullet(&bullet, alloca, 0);
+    });
 
     return player;
 }
@@ -176,7 +197,7 @@ inline void update_bullets(entity::Player&               player,
 
         // TODO: Remove creating lambda on each iteration.
         auto collided_hard = [&other_player](Bullet const& bullet) {
-            auto center   = rect_center(bullet.e);
+            auto center   = rect_center(bullet.s);
             auto collided = collision::is_point_in_rect(center,
                                                         sdl_rect(other_player.s));
             if (collided)
@@ -201,7 +222,9 @@ inline void update_bullets(entity::Player&               player,
     {
         // TODO: Remove creating lambda on each iteration.
         auto collided_hard = [&hard_entity](Bullet const& bullet) {
-            linalg::Vectorf<2> origin{{bullet.e.X[0][0], bullet.e.X[0][1]}};
+            auto& pX = bullet.s->X;
+
+            linalg::Vectorf<2> origin{{pX[0][0], pX[0][1]}};
             return collision::is_point_in_rect(origin, hard_entity);
         };
 
@@ -217,7 +240,7 @@ inline void update_bullets(entity::Player&               player,
     // Check if the bullets have left the screen.
     //
     auto within_screen = [&screen_rect](Bullet const& bullet) {
-        auto center = rect_center(bullet.e);
+        auto center = rect_center(bullet.s);
         return !collision::is_point_in_rect(center, screen_rect);
     };
 
@@ -230,5 +253,17 @@ inline void update_bullets(entity::Player&               player,
         fmt::print("FREE BULLET SCREEN {0}\n", i);
         bullets.remove(i);
     }
+}
+}
+
+namespace std {
+inline void swap(entity::Bullet& self, entity::Bullet& other)
+{
+    // Deep swap the entity.
+    auto const tmp = *self.s;
+    *self.s        = *other.s;
+    *other.s       = tmp;
+
+    std::swap(self.angle, other.angle);
 }
 }

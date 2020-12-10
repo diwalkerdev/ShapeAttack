@@ -1,8 +1,7 @@
-#ifndef BACKFILL_VECTOR_HPP
-#define BACKFILL_VECTOR_HPP
+#pragma once
 
+#include <array>
 #include <stdexcept>
-#include <vector>
 
 template <typename _Tp, std::size_t _Nm>
 struct backfill_vector {
@@ -34,25 +33,37 @@ struct backfill_vector {
     constexpr auto
     end() noexcept
     {
-        return vector.end();
+        return vector.begin() + last;
     }
 
     constexpr auto
     end() const noexcept
     {
-        return vector.cend();
+        return vector.begin() + last;
+    }
+
+    constexpr auto
+    back() noexcept
+    {
+        return vector.end();
+    }
+
+    constexpr auto
+    back() const noexcept
+    {
+        return vector.end();
     }
 
     constexpr auto
     rbegin() noexcept
     {
-        return vector.rbegin();
+        return vector.rbegin() + (_Nm - last);
     }
 
     constexpr auto
     rbegin() const noexcept
     {
-        return vector.rbegin();
+        return vector.rbegin() + (_Nm - last);
     }
 
     constexpr auto
@@ -67,33 +78,33 @@ struct backfill_vector {
         return vector.rend();
     }
 
-    constexpr auto
-    cbegin() const noexcept
-    {
-        return vector.cbegin();
-    }
+    // constexpr auto
+    // cbegin() const noexcept
+    // {
+    //     return vector.cbegin();
+    // }
 
-    constexpr auto
-    cend() const noexcept
-    {
-        return vector.cend();
-    }
+    // constexpr auto
+    // cend() const noexcept
+    // {
+    //     return vector.cend();
+    // }
 
-    constexpr auto
-    crbegin() const noexcept
-    {
-        return vector.crbegin();
-    }
+    // constexpr auto
+    // crbegin() const noexcept
+    // {
+    //     return vector.crbegin();
+    // }
 
-    constexpr auto
-    crend() const noexcept
-    {
-        return vector.crend();
-    }
+    // constexpr auto
+    // crend() const noexcept
+    // {
+    //     return vector.crend();
+    // }
 
     // Capacity.
     constexpr size_type
-    size() const noexcept { return vector.size(); }
+    size() const noexcept { return last; }
 
     constexpr size_type
     max_size() const noexcept { return _Nm; }
@@ -102,10 +113,9 @@ struct backfill_vector {
     empty() const noexcept { return size() == 0; }
 
     // Constructors.
-    backfill_vector()
-    {
-        vector.reserve(_Nm);
-    }
+    // backfill_vector()
+    // {
+    // }
 
     // Accessors.
     reference at(std::size_t pos)
@@ -114,37 +124,48 @@ struct backfill_vector {
     }
 
     // Modifiers.
-    void push_back(value_type const& value) noexcept(false)
-    {
-        if (vector.size() >= _Nm)
-        {
-            throw std::out_of_range("Push back exceeds size of backfill_vector.");
-        }
-        vector.push_back(value);
-    }
+    // void push_back(value_type const& value) noexcept(false)
+    // {
 
-    void push_back(value_type&& value) noexcept(false)
+    //     if (vector.size() >= _Nm)
+    //     {
+    //         throw std::out_of_range("Push back exceeds size of backfill_vector.");
+    //     }
+    //     vector.push_back(value);
+    // }
+
+    // void push_back(value_type&& value) noexcept(false)
+    // {
+    //     if (vector.size() >= _Nm)
+    //     {
+    //         throw std::out_of_range("Push back exceeds size of backfill_vector.");
+    //     }
+    //     vector.push_back(std::move(value));
+    // }
+    reference increase()
     {
-        if (vector.size() >= _Nm)
+        auto next = last + 1;
+        if (next > vector.size())
         {
-            throw std::out_of_range("Push back exceeds size of backfill_vector.");
+            throw std::out_of_range("increase exceeds size of backfill_vector.");
         }
-        vector.push_back(std::move(value));
+        reference x = at(last);
+        last = next;
+        return x;
     }
 
     void remove(size_type pos) noexcept(false)
     {
-        auto& back = vector.back();
+        using std::swap;
+        auto& back = vector.at(last - 1);
         auto& x    = vector.at(pos);
 
-        x = std::move(back);
-
-        vector.pop_back();
+        swap(x, back);
+        last -= 1;
     }
 
 private:
-    std::vector<_Tp> vector;
+    std::array<_Tp, _Nm> vector;
+    std::size_t          last{};
 };
 
-
-#endif // BACKFILL_VECTOR_HPP

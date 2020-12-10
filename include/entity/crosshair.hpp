@@ -1,29 +1,39 @@
 #pragma once
 #include "entity.hpp"
+#include "entity/entityallocator.hpp"
 #include "fmt/core.h"
 #include "linalg/matrix.hpp"
 #include "linalg/trans.hpp"
 
+
 namespace entity {
+
 struct Crosshair {
-    entity::Entity e;
+    entity::Entity* s;
+    entity::Entity* r;
 
     // This is where the player is pointing, not the rotation of the entity.
     // Remember this represents angular position and angular velocity.
     linalg::Vectorf<2> R;
 };
 
-inline auto make_crosshair()
+inline auto make_crosshair(entity::Allocator& alloca)
 {
-    entity::Entity e{0};
-    e.w = 20;
-    e.h = 20;
+    int index;
+    reserve(alloca, index);
 
-    entity::Crosshair crosshair;
-    crosshair.e = e;
-    crosshair.R = {{0, 0}};
+    entity::Crosshair ch;
 
-    return crosshair;
+    ch.s = &alloca.data[index];
+    ch.r = &alloca.interpolated[index];
+
+    entity::Entity* e = ch.s;
+    e->w              = 20;
+    e->h              = 20;
+
+    ch.R = {{0, 0}};
+
+    return ch;
 }
 
 inline void update(Crosshair& crosshair, entity::Entity const* parent, float input, float dt)
@@ -59,10 +69,11 @@ inline void update(Crosshair& crosshair, entity::Entity const* parent, float inp
 
     // Update position
     {
-        auto& X = crosshair.e.X;
+        entity::Entity* e = crosshair.s;
+        auto&           X = e->X;
 
         // Move the crosshair to the center of the player.
-        center_on_center(crosshair.e, parent);
+        center_on_center(e, parent);
 
         // Create a vector rotated by the player's aim.
         linalg::Vectorf<2> m{{80, 0}};

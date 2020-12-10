@@ -87,7 +87,7 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
 
 [[builds]]
     name = "test"
-    defines = ["-DSPDLOG_FMT_EXTERNAL", "-DTEST_ENTITIES"]
+    defines = ["-DSPDLOG_FMT_EXTERNAL", "-DTEST_BACKFILL"]
     buildRule = "exe"
     requires = ["fmt"]
     outputName = "Tests"

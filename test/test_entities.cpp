@@ -79,7 +79,7 @@ void investigate_addresses_of_state_space_variables()
 void test_reserve_allocates_one_entity()
 {
     // Check everything is empty on initialisation.
-    auto entity_alloca = make_entity_alloca();
+    auto entity_alloca = entity::make_entity_alloca();
     assert(entity_alloca.data.size() == 0);
 
     // Check first reservation.
@@ -99,7 +99,7 @@ void test_reserve_allocates_one_entity()
 
 void test_integration_of_serveral_entities()
 {
-    auto entity_alloca = make_entity_alloca();
+    auto entity_alloca = entity::make_entity_alloca();
 
     // Probably want to create a player, bullet and a spring?
     float x0, y0;
@@ -130,7 +130,7 @@ void test_integration_of_serveral_entities()
     float current_time;
     float accumulator;
 
-    float new_time   = SDL_GetTicks();
+    float new_time   = 0; // SDL_GetTicks();
     float frame_time = new_time - current_time;
 
     // What does this line do?
@@ -147,8 +147,8 @@ void test_integration_of_serveral_entities()
         accumulator -= dt;
     }
 
-    ::interpolate(entity_alloca, accumulator);
-    render();
+    // ::interpolate(entity_alloca, accumulator);
+    // render();
 }
 
 
