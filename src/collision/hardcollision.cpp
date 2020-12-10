@@ -24,13 +24,12 @@ void detect_hard_collisions(float                                    dt,
         auto& boundary = hard_boundaries[wall_idx];
         auto& entity   = walls[wall_idx];
 
-        auto& X = player.e.X;
 
         {
             linalg::Vectorf<2> c, r, p;
 
-            collided = collision::is_point_in_rect(player.e.X[0][0],
-                                                   player.e.X[0][1],
+            collided = collision::is_point_in_rect(player.s->X[0][0],
+                                                   player.s->X[0][1],
                                                    boundary);
 
             if (!collided)
@@ -43,6 +42,9 @@ void detect_hard_collisions(float                                    dt,
 
                 // Go back to a position where the player is hasn't collided with the object.
                 player = player_copy;
+                auto& pX = player.s->X;
+                auto& pw = player.s->w;
+                auto& ph = player.s->h;
 
                 linalg::Matrixf<2, 1> ux{{1.f, 0.f}};
                 linalg::Matrixf<2, 1> uy{{0.f, 1.f}};
@@ -50,8 +52,8 @@ void detect_hard_collisions(float                                    dt,
                 // TODO: LA, automatically return float from the dot product below (eliminate [0]).
                 auto  uxdot = (T(ux) * ux)[0];
                 auto  uydot = (T(uy) * uy)[0];
-                float ex    = uxdot * (entity.r.w * 0.5);
-                float ey    = uydot * (entity.r.h * 0.5);
+                float ex    = uxdot * (entity.rect.w * 0.5);
+                float ey    = uydot * (entity.rect.h * 0.5);
 
                 c = entity::rect_center(player);
                 r = entity::rect_center(entity);
@@ -92,11 +94,11 @@ void detect_hard_collisions(float                                    dt,
                 bool x_edge;
                 {
 
-                    float x1 = std::abs(p[0] - player.e.X[0][0]);
-                    float x2 = std::abs(p[0] - (player.e.X[0][0] + player.e.w));
+                    float x1 = std::abs(p[0] - pX[0][0]);
+                    float x2 = std::abs(p[0] - (pX[0][0] + pw));
 
-                    float y1 = std::abs(p[1] - player.e.X[0][1]);
-                    float y2 = std::abs(p[1] - (player.e.X[0][1] + player.e.h));
+                    float y1 = std::abs(p[1] - pX[0][1]);
+                    float y2 = std::abs(p[1] - (pX[0][1] + ph));
 
                     float xmin = std::min(x1, x2);
                     float ymin = std::min(y1, y2);
@@ -107,7 +109,7 @@ void detect_hard_collisions(float                                    dt,
                 {
                     // TODO write norm function.
                     auto c_norm = norm(c_vec);
-                    auto v      = linalg::Vectorf<2>(player.e.X[1]);
+                    auto v      = linalg::Vectorf<2>(pX[1]);
                     auto v_norm = norm(v);
 
                     float pv_x;
@@ -139,12 +141,13 @@ void detect_hard_collisions(float                                    dt,
                         pv_y = v_y * player.restitution;
                     }
 
-                    player.e.X[1][0] *= pv_x;
-                    player.e.X[1][1] *= pv_y;
+                    pX[1][0] *= pv_x;
+                    pX[1][1] *= pv_y;
 
                     // Calculate the time remaining after the collision.
                     float dt_eval = dt - (dt_step * loop_idx);
-                    player.e.update(dt_eval, game_events.player_movement);
+                    entity::set_input(player.s, game_events.player_movement);
+                    entity::integrate(player.s, dt_eval);
                 }
             } // if collision.
         } // collision block.

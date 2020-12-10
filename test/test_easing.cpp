@@ -26,7 +26,7 @@ void test_get_set_and_step_example()
     assert(easer.debouncers[0].state == easing::DebounceState::DEFAULT);
 
     // Set changes state to running.
-    debounce.set();
+    debounce.set(true);
     assert(easer.debouncers[0].state == easing::DebounceState::RUNNING);
 
     // Stepping decreases time.

@@ -1,14 +1,10 @@
-#include <SDL2/SDL.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
 #include "animation/core.hpp"
 #include "collision/core.hpp"
 #include "containers/backfill_vector.hpp"
 #include "drawing/core.hpp"
 #include "easing/core.hpp"
 #include "entity/core.hpp"
+#include "entity/entityallocator.hpp"
 #include "fmt/core.h"
 #include "gameevents.h"
 #include "gamehud.h"
@@ -22,17 +18,24 @@
 #include "screen.h"
 #include "shapes.hpp"
 #include "typedefs.h"
-
 // #include "spdlog/spdlog.h"
 
+#include <SDL2/SDL.h>
 #include <algorithm>
 #include <complex>
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
+#include <time.h>
 #include <vector>
+
+// #define DISABLE_SIM
+// #define DISABLE_RENDER
+
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -174,22 +177,22 @@ SDL_Texture* load_texture(SDL_Renderer* renderer,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void make_hard_boundaries(entity::Entity const&              entity,
+void make_hard_boundaries(entity::Entity const*              entity,
                           std::vector<entity::EntityStatic>& game_entities,
                           std::vector<SDL_FRect>&            hard_boundaries)
 {
-    linalg::Vectorf<2> origin{{-entity.w, -entity.h}};
+    linalg::Vectorf<2> origin{{-entity->w, -entity->h}};
     for (auto& hard_entity : game_entities)
     {
         hard_boundaries.push_back(collision::minkowski_boundary(hard_entity, origin));
     }
 }
 
-void make_soft_boundaries(entity::Entity const&                    entity,
+void make_soft_boundaries(entity::Entity const*                    entity,
                           std::vector<entity::EntityStatic> const& game_entities,
                           std::vector<SDL_FRect>&                  soft_boundaries)
 {
-    linalg::Vectorf<2> origin{{-entity.w, -entity.h}};
+    linalg::Vectorf<2> origin{{-entity->w, -entity->h}};
     for (auto& soft_entity : game_entities)
     {
         soft_boundaries.push_back(collision::minkowski_boundary(soft_entity, origin));
@@ -255,16 +258,23 @@ int main(int argc, char* argv[])
     SDL_Event          e;
     kiss_array         objects;
 
+    entity::Allocator alloca;
+
     GameEvents game_events(easer);
     DevOptions dev_opts;
 
     GameLoopTimer      game_loop{0};
     int                draw;
     std::vector<entity::Player> players{
-        entity::make_player(100.f, 100.f, 80.f, 80.f),
-        entity::make_player(200.f, 100.f, 80.f, 80.f)};
+        entity::make_player(alloca, {100.f, 100.f, 80.f, 80.f}),
+        entity::make_player(alloca, {200.f, 100.f, 80.f, 80.f})};
     auto& player_1 = players[0];
     auto& player_2 = players[1];
+
+    printf("A Player 1 x: %f\n", alloca.data[0].X[0][0]);
+
+    printf("A Player 1 px: %p\n", &alloca.data[0].X[0][0]);
+    printf("B Player 1 px: %p\n", &player_1.s->X[0][0]);
 
     if (std::filesystem::exists(game_state_path))
     {
@@ -296,8 +306,8 @@ int main(int argc, char* argv[])
         std::tuple{"FPS", &game_loop.fps},
         std::tuple{"Draw Minkowski", &dev_opts.draw_minkowski},
         std::tuple{"Show Vectors", &dev_opts.draw_vectors},
-        std::tuple{"Player x", (const float*)&player_1.e.X[0][0]},
-        std::tuple{"Player y", (const float*)&player_1.e.X[0][1]});
+        std::tuple{"Player x", (const float*)&player_1.s->X[0][0]},
+        std::tuple{"Player y", (const float*)&player_1.s->X[0][1]});
 
     kiss_window editor_window;
     kiss_window_new(&editor_window,
@@ -352,13 +362,13 @@ int main(int argc, char* argv[])
         soft_entities.push_back(entity::make_food());
         walls.push_back(entity::make_wall());
         {
-            make_hard_boundaries(player_1.e, walls, hard_boundaries);
-            make_soft_boundaries(player_1.e, soft_entities, soft_boundaries);
+            make_hard_boundaries(player_1.s, walls, hard_boundaries);
+            make_soft_boundaries(player_1.s, soft_entities, soft_boundaries);
         }
 
         {
             auto bullet_tmp = entity::make_bullet(0);
-            make_hard_boundaries(bullet_tmp.e, walls, hard_bullet_boundaries);
+            make_hard_boundaries(&bullet_tmp.e, walls, hard_bullet_boundaries);
         }
 
         assert(soft_entities.size() == soft_boundaries.size());
@@ -395,6 +405,9 @@ int main(int argc, char* argv[])
             }
         }
 
+#ifdef DISABLE_SIM
+#else
+        printf("Simulating\n");
         // Update gameplay.
         auto player_copy = player_1;
         bool collided    = false;
@@ -409,8 +422,10 @@ int main(int argc, char* argv[])
                  (loop_idx < 4) && !collided;
                  ++loop_idx)
             {
-                player_1.e.update(dt_step,
+                entity::set_input(player_1.s,
                                   game_events.player_movement);
+                entity::integrate(player_1.s,
+                                  dt_step);
 
                 collision::detect_hard_collisions(dt,
                                                   dt_step,
@@ -427,9 +442,10 @@ int main(int argc, char* argv[])
                                                   soft_boundaries);
             }
 
-            player_1.update();
+            update(player_1);
+
             entity::update(player_1.crosshair,
-                           player_1.e,
+                           player_1.s,
                            game_events.player_rotation,
                            dt_step);
 
@@ -447,12 +463,21 @@ int main(int argc, char* argv[])
                 }
             }
         }
+#endif // DISABLE_SIM
 
+#ifdef DISABLE_RENDER
+#else
         SDL_Rect player_texture_src_rect;
         // Animations
         {
-            linalg::Vectorf<2> vel{{player_1.e.X[1][0], player_1.e.X[1][1]}};
-            player_texture_src_rect = animation::animate(player_texture_descriptor, vel, direction, accumilator, frame);
+            auto const& pX = player_1.s->X;
+
+            linalg::Vectorf<2> vel{{pX[1][0], pX[1][1]}};
+            player_texture_src_rect = animation::animate(player_texture_descriptor,
+                                                         vel,
+                                                         direction,
+                                                         accumilator,
+                                                         frame);
         }
 
         // Render player.
@@ -465,8 +490,9 @@ int main(int argc, char* argv[])
 
             for (auto const& player : players)
             {
-                SDL_FRect dst = to_screen_rect(sdl_rect(player.e));
-                SDL_Rect  src{0, 0, (int)player_1.e.w, (int)player.e.h};
+                //printf("Player 1 x: %f\n", player.s->X[0][0]);
+                SDL_FRect dst = to_screen_rect(sdl_rect(player.s));
+                // SDL_Rect  src{0, 0, (int)player_1.e.w, (int)player.e.h};
 
                 SDL_RenderCopyF(renderer,
                                 player.texture,
@@ -523,7 +549,7 @@ int main(int argc, char* argv[])
             {
                 if (entity.alive)
                 {
-                    SDL_FRect fdst = to_screen_rect(entity.r);
+                    SDL_FRect fdst = to_screen_rect(entity.rect);
                     SDL_RenderFillRectF(renderer, &fdst);
                 }
             }
@@ -531,7 +557,7 @@ int main(int argc, char* argv[])
             SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xff);
             for (auto& entity : walls)
             {
-                SDL_FRect fdst = to_screen_rect(entity.r);
+                SDL_FRect fdst = to_screen_rect(entity.rect);
                 SDL_RenderFillRectF(renderer, &fdst);
             }
 
@@ -555,11 +581,13 @@ int main(int argc, char* argv[])
             SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
             if (dev_opts.draw_vectors)
             {
+                auto const& pX = player_1.s->X;
+                auto const& pY = player_1.s->Y;
                 drawing::draw_vector(renderer,
-                                     player_1.e.X[0][0],
-                                     player_1.e.X[0][1],
-                                     player_1.e.Y[1][0],
-                                     player_1.e.Y[1][1]);
+                                     pX[0][0],
+                                     pX[0][1],
+                                     pY[1][0],
+                                     pY[1][1]);
             }
         }
 
@@ -568,6 +596,7 @@ int main(int argc, char* argv[])
             game_hud.update(player_2);
             game_hud.render(renderer, game_hud_texture);
         }
+#endif // DISABLE_RENDER
 
         // Render dev hud. This is a bit wasteful if the hud is not enabled
         // however for not it is good to do so we can keep an eye on CPU usage.

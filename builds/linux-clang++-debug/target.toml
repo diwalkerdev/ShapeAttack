@@ -87,13 +87,8 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
 
 [[builds]]
     name = "test"
-    defines = ["-DSPDLOG_FMT_EXTERNAL", "-DTEST_EASING"]
+    defines = ["-DSPDLOG_FMT_EXTERNAL", "-DTEST_ENTITIES"]
     buildRule = "exe"
-    flags = [
-        "-fsanitize=address",
-        "-fno-omit-frame-pointer", # get nicer stack traces from address sanitizer.
-        "-fsanitize=undefined"
-    ]
     requires = ["fmt"]
     outputName = "Tests"
     srcDirs = ["test"]

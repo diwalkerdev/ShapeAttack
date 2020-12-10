@@ -20,13 +20,28 @@ struct Entity {
     linalg::Matrixf<2, 2> A;
     linalg::Matrixf<2, 2> B;
 
-    void update(float dt, linalg::Matrixf<2, 2> const& u)
-    {
-        Xdot = (X + (dt * A * X)) + (dt * B * u);
-        Y    = X;
-        X    = Xdot;
-    }
+    linalg::Matrixf<2, 2> u;
 };
+
+// TODO: Rename this to integrate.
+inline void update(Entity& e, float dt, linalg::Matrixf<2, 2> const& u)
+{
+    e.Xdot = (e.X + (dt * e.A * e.X)) + (dt * e.B * u);
+    e.Y    = e.X;
+    e.X    = e.Xdot;
+}
+
+inline void set_input(Entity* e, linalg::Matrixf<2, 2> const& u)
+{
+    e->u = u;
+}
+
+inline void integrate(Entity* e, float dt)
+{
+    e->Xdot = (e->X + (dt * e->A * e->X)) + (dt * e->B * e->u);
+    e->Y    = e->X;
+    e->X    = e->Xdot;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -37,7 +52,7 @@ enum class EntityKinds {
 
 struct EntityStatic {
     SDL_Texture* texture;
-    SDL_FRect    r;
+    SDL_FRect    rect;
     float        restitution;
     EntityKinds  kind_of;
     bool         alive;
@@ -53,7 +68,21 @@ inline SDL_FRect sdl_rect(Entity const& entity)
             entity.h};
 }
 
+inline SDL_FRect sdl_rect(Entity const* entity)
+{
+    return {entity->X[0][0],
+            entity->X[0][1],
+            entity->w,
+            entity->h};
+}
+
 inline auto rect_center(Entity const& entity)
+{
+    auto r = sdl_rect(entity);
+    return rect_center(r);
+}
+
+inline auto rect_center(Entity const* entity)
 {
     auto r = sdl_rect(entity);
     return rect_center(r);
@@ -61,12 +90,12 @@ inline auto rect_center(Entity const& entity)
 
 inline auto sdl_rect(EntityStatic const& entity)
 {
-    return entity.r;
+    return entity.rect;
 }
 
 inline auto rect_center(EntityStatic const& entity)
 {
-    return ::rect_center(entity.r);
+    return ::rect_center(entity.rect);
 }
 
 inline auto center_on_point(Entity &a, linalg::Vectorf<2> const& center)
@@ -80,6 +109,10 @@ inline auto center_on_center(Entity &a, Entity const&b)
     center_on_point(a, rect_center(b));
 }
 
+inline auto center_on_center(Entity& a, Entity const* b)
+{
+    center_on_point(a, rect_center(b));
+}
 
 //////////////////////////////////////////////////////////////////////////////
 

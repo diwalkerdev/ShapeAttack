@@ -17,8 +17,10 @@ void detect_soft_collisions(entity::Player&                    player,
         auto& boundary = soft_boundaries[entity_idx];
         auto& entity   = game_entities[entity_idx];
 
-        bool collided = collision::is_point_in_rect(player.e.X[0][0],
-                                                    player.e.X[0][1],
+        auto const& pX = player.s->X;
+
+        bool collided = collision::is_point_in_rect(pX[0][0],
+                                                    pX[0][1],
                                                     boundary);
 
         if (collided && entity.alive)

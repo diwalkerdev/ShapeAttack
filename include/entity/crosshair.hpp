@@ -26,7 +26,7 @@ inline auto make_crosshair()
     return crosshair;
 }
 
-inline void update(Crosshair& crosshair, entity::Entity const& parent, float input, float dt)
+inline void update(Crosshair& crosshair, entity::Entity const* parent, float input, float dt)
 {
     // Currently not using any dynamics.
     // a = /*kv +*/ su;
