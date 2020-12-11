@@ -12,9 +12,13 @@ struct Crosshair {
     entity::Entity* s;
     entity::Entity* r;
 
+    // TODO: R and Rdot belongs to the player, not the crosshair.
     // This is where the player is pointing, not the rotation of the entity.
     // Remember this represents angular position and angular velocity.
-    linalg::Vectorf<2> R;
+    linalg::Vectorf<2> rotX;
+    linalg::Vectorf<2> rotXdot;
+    linalg::Vectorf<2> roty;
+    float              rotu;
 };
 
 inline auto make_crosshair(entity::Allocator& alloca)
@@ -31,12 +35,18 @@ inline auto make_crosshair(entity::Allocator& alloca)
     e->w              = 20;
     e->h              = 20;
 
-    ch.R = {{0, 0}};
+    ch.rotX = {{0, 0}};
 
     return ch;
 }
 
-inline void update(Crosshair& crosshair, entity::Entity const* parent, float input, float dt)
+inline void set_input(Crosshair& ch, float u)
+{
+    const float s = 2;
+    ch.rotu = u * s;
+}
+
+inline void integrate(Crosshair& ch, float dt)
 {
     // Currently not using any dynamics.
     // a = /*kv +*/ su;
@@ -46,44 +56,40 @@ inline void update(Crosshair& crosshair, entity::Entity const* parent, float inp
     //
     // k friction
     // s input scalar
+    float k = -0.2f;
 
     // Update rotation.
-    auto&              R = crosshair.R;
-    auto&              u = input;
-    linalg::Vectorf<2> y;
-    {
-        float s = 10;
-        float k = -0.2f;
-        u *= s;
+    auto& R    = ch.rotX;
+    auto& Rdot = ch.rotXdot;
+    auto& u    = ch.rotu;
+    auto& y    = ch.roty;
 
-        // linalg::Matrixf<2, 2> A{{{0, 1}, {0, k}}};
-        linalg::Matrixf<2, 2> A{{{0, 0}, {0, 0}}};
-        linalg::Vectorf<2>    B{{1, 0}}; // Remember this selects angular pos or velocity.
+    // linalg::Matrixf<2, 2> A{{{0, 1}, {0, k}}};
+    linalg::Matrixf<2, 2> A{{{0, 0}, {0, 0}}};
+    linalg::Vectorf<2>    B{{1, 0}}; // Remember this selects angular pos or velocity.
 
-        // Currently not using any dynamics.
-        auto Rdot = (R + (dt * A * R)) + ((dt * B) * u);
+    // Currently not using any dynamics.
+    Rdot = (R + (dt * A * R)) + ((dt * B) * u);
 
-        y = R;
-        R = Rdot;
-    }
-
-    // Update position
-    {
-        entity::Entity* e = crosshair.s;
-        auto&           X = e->X;
-
-        // Move the crosshair to the center of the player.
-        center_on_center(e, parent);
-
-        // Create a vector rotated by the player's aim.
-        linalg::Vectorf<2> m{{80, 0}};
-        m = lrotzf(y[0]) * m;
-
-        // Finally translate the crosshair away from the player using the m vector.
-        X[0][0] += m[0];
-        X[0][1] += m[1];
-    }
+    y = R;
+    R = Rdot;
 }
 
+inline void update_crosshair(Crosshair& crosshair, entity::Entity const* parent)
+{
+    entity::Entity* e = crosshair.r;
+    auto&           X = e->X;
+
+    // Move the crosshair to the center of the player.
+    center_on_center(e, parent);
+
+    // Create a vector rotated by the player's aim.
+    linalg::Vectorf<2> m{{80, 0}};
+    m = lrotzf(crosshair.roty[0]) * m;
+
+    // Finally translate the crosshair away from the player using the m vector.
+    X[0][0] += m[0];
+    X[0][1] += m[1];
 }
 
+} // namespace entity

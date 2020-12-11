@@ -23,14 +23,6 @@ struct Entity {
     linalg::Matrixf<2, 2> u;
 };
 
-// TODO: Rename this to integrate.
-inline void update(Entity& e, float dt, linalg::Matrixf<2, 2> const& u)
-{
-    e.Xdot = (e.X + (dt * e.A * e.X)) + (dt * e.B * u);
-    e.Y    = e.X;
-    e.X    = e.Xdot;
-}
-
 inline void set_input(Entity* e, linalg::Matrixf<2, 2> const& u)
 {
     e->u = u;

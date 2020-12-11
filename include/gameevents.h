@@ -7,7 +7,7 @@
 // TODO Split events and dev options into seperate files.
 struct GameEvents {
     GameEvents(easing::Easer& easer)
-        : fire(easing::make_debounce_switch(easer, 10))
+        : fire(easing::make_debounce_switch(easer, 200))
     {
     }
 

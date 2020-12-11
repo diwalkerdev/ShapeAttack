@@ -22,6 +22,7 @@
 
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <chrono>
 #include <complex>
 #include <filesystem>
 #include <functional>
@@ -36,10 +37,9 @@
 // #define DISABLE_SIM
 // #define DISABLE_RENDER
 
-
 //////////////////////////////////////////////////////////////////////////////
 
-void handle_input(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
+void handle_input_states(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
 {
     int l, r, u, d;
     int cw, cc; // clockwise, counter clockwise
@@ -58,6 +58,29 @@ void handle_input(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opt
     cw = keyboard_state[SDL_SCANCODE_D];
     cc = keyboard_state[SDL_SCANCODE_A];
 
+    {
+        int   x_input = r - l;
+        int   y_input = u - d;
+        float x_axis  = static_cast<float>(x_input);
+        float y_axis  = static_cast<float>(y_input);
+
+        if (x_input && y_input)
+        {
+            float norm = std::sqrt((x_input * x_input) + (y_input * y_input));
+            x_axis /= norm;
+            y_axis /= norm;
+        }
+
+        game_events.player_movement = {
+            {{0.f, 0.f},
+             {x_axis, y_axis}}};
+
+        game_events.player_rotation = cw - cc;
+    }
+}
+
+void handle_input_event(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
+{
     // Single hit keys.
     if (event.type == SDL_KEYUP)
     {
@@ -84,26 +107,6 @@ void handle_input(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opt
         default:
             break;
         }
-    }
-
-    {
-        int   x_input = r - l;
-        int   y_input = u - d;
-        float x_axis  = static_cast<float>(x_input);
-        float y_axis  = static_cast<float>(y_input);
-
-        if (x_input && y_input)
-        {
-            float norm = std::sqrt((x_input * x_input) + (y_input * y_input));
-            x_axis /= norm;
-            y_axis /= norm;
-        }
-
-        game_events.player_movement = {
-            {{0.f, 0.f},
-             {x_axis, y_axis}}};
-
-        game_events.player_rotation = cw - cc;
     }
 }
 
@@ -242,14 +245,13 @@ auto player_respawn(entity::Player&                        player,
     player.respawn(point);
 }
 
+using high_res_clock = std::chrono::high_resolution_clock;
+
 int main(int argc, char* argv[])
 {
     std::string           argv_str(argv[0]);
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
-
-    constexpr float dt      = 1.f / 30.f;
-    constexpr float dt_step = dt / 4.f;
 
     easing::Easer      easer;
     SDL_Renderer*      renderer;
@@ -261,7 +263,7 @@ int main(int argc, char* argv[])
     GameEvents game_events(easer);
     DevOptions dev_opts;
 
-    GameLoopTimer      game_loop{0};
+    //GameLoopTimer      game_loop{0};
     int                draw;
     std::vector<entity::Player> players{
         entity::make_player(alloca, {100.f, 100.f, 80.f, 80.f}),
@@ -296,7 +298,7 @@ int main(int argc, char* argv[])
     // TODO: Refactor DataStructure name
     // TODO: Refactor how the window, texture and grid are all created.
     DataStructure window_data(
-        std::tuple{"FPS", &game_loop.fps},
+        // std::tuple{"FPS", (const float*)&fps},
         std::tuple{"Draw Minkowski", &dev_opts.draw_minkowski},
         std::tuple{"Show Vectors", &dev_opts.draw_vectors},
         std::tuple{"Player x", (const float*)&player_1.s->X[0][0]},
@@ -380,10 +382,36 @@ int main(int argc, char* argv[])
 
     animation::Direction direction = animation::Direction::RIGHT;
 
+    // Game loop timer stuff.
+    auto         clock = high_res_clock();
+    float        fps;
+    auto         current_time = clock.now();
+    auto         new_time     = clock.now();
+    auto         frame_time   = std::chrono::duration<double>(new_time - current_time);
+    double       accumulator  = 0;
+    double       render_accumulator = 0;
+    double       dit          = 0;
+    const double SIM_DT             = 0.05;
+    const double SIM_DT_STEP  = SIM_DT / 4;
+
 
     while (!game_events.quit)
     {
-        game_loop.start();
+        {
+            new_time   = clock.now();
+            frame_time = std::chrono::duration(new_time - current_time);
+            dit        = frame_time.count();
+
+            assert(dit < 0.25);
+
+            current_time = new_time;
+            accumulator += dit;
+            render_accumulator += dit;
+
+            //std::cout << "dt: " << dit;
+        }
+
+        handle_input_states(e, game_events, dev_opts);
 
         while (SDL_PollEvent(&e))
         {
@@ -394,26 +422,33 @@ int main(int argc, char* argv[])
 
             editor_handle_events(window_data, &e, &draw);
             game_hud.handle_events(&e, &draw, game_events);
-            handle_input(e, game_events, dev_opts);
+            handle_input_event(e, game_events, dev_opts);
+        }
 
-            if (game_events.fire.get())
-            {
-                player_1.fire();
-            }
+        if (game_events.fire.get())
+        {
+            player_1.fire();
         }
 
 #ifdef DISABLE_SIM
 #else
-        // Update gameplay.
-        auto player_copy = player_1;
-        bool collided    = false;
-
-        // Collision detection loop.
-        //
-        // TODO: different strategies? if collision first attempt then go smaller than dt_step?
-        // Could also try a binary search like thing.
-        // TODO: this doesn't handle colliding with several objects at once.
+        bool simulation_ran = false;
+        while (accumulator > SIM_DT)
         {
+            //printf("s");
+            simulation_ran = true;
+            accumulator -= SIM_DT;
+
+            // Update gameplay.
+            auto player_copy = player_1;
+            bool collided    = false;
+
+            // Collision detection loop.
+            //
+            // TODO: different strategies? if collision first attempt then go smaller than dt_step?
+            // Could also try a binary search like thing.
+            // TODO: this doesn't handle colliding with several objects at once.
+
             for (int loop_idx = 0;
                  (loop_idx < 4) && !collided;
                  ++loop_idx)
@@ -421,10 +456,10 @@ int main(int argc, char* argv[])
                 entity::set_input(player_1.s,
                                   game_events.player_movement);
                 entity::integrate(player_1.s,
-                                  dt_step);
+                                  SIM_DT_STEP);
 
-                collision::detect_hard_collisions(dt,
-                                                  dt_step,
+                collision::detect_hard_collisions(SIM_DT,
+                                                  SIM_DT_STEP,
                                                   loop_idx,
                                                   game_events,
                                                   player_1,
@@ -432,24 +467,22 @@ int main(int argc, char* argv[])
                                                   hard_boundaries,
                                                   collided);
 
-                // TODO: Why does soft_collisions not take a dt?
+                // Note(DW): Doesn't need dt as player position is updated and soft collisions are static.
                 collision::detect_soft_collisions(player_1,
                                                   soft_entities,
                                                   soft_boundaries);
             }
 
-            update(player_1);
-
-            entity::update(player_1.crosshair,
-                           player_1.s,
-                           game_events.player_rotation,
-                           dt_step);
+            entity::set_input(player_1.crosshair,
+                              game_events.player_rotation);
+            entity::integrate(player_1.crosshair,
+                              SIM_DT);
 
             update_bullets(player_1,
                            players,
                            hard_bullet_boundaries,
                            screen_rect,
-                           dt);
+                           SIM_DT);
 
             for (auto& player : players)
             {
@@ -458,174 +491,176 @@ int main(int argc, char* argv[])
                     player_respawn(player, respawn_points);
                 }
             }
-        }
+        } // end sim loop
+
 #endif // DISABLE_SIM
+
+        if (simulation_ran)
+        {
+            // printf(".");
+            update(alloca);
+        }
+
+        // TODO: Better explanation.
+        // Forward integrate.
+        interpolate(alloca, dit);
+
+        // easing
+        easer.step(dit * 1000);
+
+        bool render_ran = false;
+        while (render_accumulator > 0.03)
+        {
+            //printf("r");
+            render_accumulator -= 0.03;
+
+            // Want to check that the render only runs once per loop.
+            assert(render_ran == false);
+            render_ran = true;
 
 #ifdef DISABLE_RENDER
 #else
-        SDL_Rect player_texture_src_rect;
-        // Animations
-        {
-            auto const& pX = player_1.s->X;
 
-            linalg::Vectorf<2> vel{{pX[1][0], pX[1][1]}};
-            player_texture_src_rect = animation::animate(player_texture_descriptor,
-                                                         vel,
-                                                         direction,
-                                                         accumilator,
-                                                         frame);
-        }
-
-        // Render player.
-        {
-            SDL_SetRenderTarget(renderer, nullptr);
-            SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
-            SDL_RenderClear(renderer);
-
-            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
-
-            for (auto const& player : players)
+            SDL_Rect player_texture_src_rect;
+            // Animations
             {
-                //printf("Player 1 x: %f\n", player.s->X[0][0]);
-                SDL_FRect dst = to_screen_rect(sdl_rect(player.s));
-                // SDL_Rect  src{0, 0, (int)player_1.e.w, (int)player.e.h};
+                auto const& pX = player_1.s->X;
 
-                SDL_RenderCopyF(renderer,
-                                player.texture,
-                                &player_texture_src_rect,
-                                &dst);
+                linalg::Vectorf<2> vel{{pX[1][0], pX[1][1]}};
+                player_texture_src_rect = animation::animate(player_texture_descriptor,
+                                                             vel,
+                                                             direction,
+                                                             accumilator,
+                                                             frame);
             }
-        }
 
-        // Render crosshair.
-        {
-            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
-
-            // auto const& crosshair = player.crosshair;
-
-            // SDL_FRect dst = to_screen_rect(sdl_rect(crosshair.e));
-            // SDL_Rect  src{0, 0, (int)crosshair.e.w, (int)crosshair.e.h};
-
-            // SDL_RenderCopyF(renderer,
-            //                 player.texture,
-            //                 &player_texture_src_rect,
-            //                 &dst);
-
-            auto const* e = player_1.crosshair.s;
-
-            SDL_FRect fdst = to_screen_rect(sdl_rect(e));
-            SDL_RenderFillRectF(renderer, &fdst);
-        }
-
-        // Render bullets.
-        {
-            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
-
-            // auto const& crosshair = player.crosshair;
-
-            // SDL_FRect dst = to_screen_rect(sdl_rect(crosshair.e));
-            // SDL_Rect  src{0, 0, (int)crosshair.e.w, (int)crosshair.e.h};
-
-            // SDL_RenderCopyF(renderer,
-            //                 player.texture,
-            //                 &player_texture_src_rect,
-            //                 &dst);
-
-            for (auto& bullet : player_1.bullets)
+            // Render player.
             {
-                SDL_FRect fdst = to_screen_rect(sdl_rect(bullet.s));
-                SDL_RenderFillRectF(renderer, &fdst);
+                SDL_SetRenderTarget(renderer, nullptr);
+                SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+                SDL_RenderClear(renderer);
+
+                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+
+                for (auto const& player : players)
+                {
+                    SDL_FRect dst = to_screen_rect(sdl_rect(player.r));
+
+                    SDL_RenderCopyF(renderer,
+                                    player.texture,
+                                    &player_texture_src_rect,
+                                    &dst);
+                }
+
+                // Render crosshair.
+                {
+                    entity::update_crosshair(player_1.crosshair, player_1.r);
+
+                    SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+
+                    auto const* e    = player_1.crosshair.r;
+                    SDL_FRect   fdst = to_screen_rect(sdl_rect(e));
+                    SDL_RenderFillRectF(renderer, &fdst);
+                }
+
+                // Render bullets.
+                {
+                    SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+
+                    for (auto& bullet : player_1.bullets)
+                    {
+                        SDL_FRect fdst = to_screen_rect(sdl_rect(bullet.r));
+                        SDL_RenderFillRectF(renderer, &fdst);
+                    }
+                }
             }
-        }
 
-        // Render game entities.
-        {
-            SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
-            for (auto& entity : soft_entities)
+            // Render game entities.
             {
-                if (entity.alive)
+                SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 0xff);
+                for (auto& entity : soft_entities)
+                {
+                    if (entity.alive)
+                    {
+                        SDL_FRect fdst = to_screen_rect(entity.rect);
+                        SDL_RenderFillRectF(renderer, &fdst);
+                    }
+                }
+
+                SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xff);
+                for (auto& entity : walls)
                 {
                     SDL_FRect fdst = to_screen_rect(entity.rect);
                     SDL_RenderFillRectF(renderer, &fdst);
                 }
-            }
 
-            SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xff);
-            for (auto& entity : walls)
-            {
-                SDL_FRect fdst = to_screen_rect(entity.rect);
-                SDL_RenderFillRectF(renderer, &fdst);
-            }
-
-            if (dev_opts.draw_minkowski)
-            {
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
-
-                for (auto& boundary : hard_boundaries)
+                if (dev_opts.draw_minkowski)
                 {
-                    auto dst = to_screen_rect(boundary);
-                    SDL_RenderDrawRectF(renderer, &dst);
+                    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff, 0xff);
+
+                    for (auto& boundary : hard_boundaries)
+                    {
+                        auto dst = to_screen_rect(boundary);
+                        SDL_RenderDrawRectF(renderer, &dst);
+                    }
+
+                    for (auto& boundary : soft_boundaries)
+                    {
+                        auto dst = to_screen_rect(boundary);
+                        SDL_RenderDrawRectF(renderer, &dst);
+                    }
                 }
 
-                for (auto& boundary : soft_boundaries)
+                SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+                if (dev_opts.draw_vectors)
                 {
-                    auto dst = to_screen_rect(boundary);
-                    SDL_RenderDrawRectF(renderer, &dst);
+                    auto const& pX = player_1.r->X;
+                    auto const& pY = player_1.r->Y;
+                    drawing::draw_vector(renderer,
+                                         pX[0][0],
+                                         pX[0][1],
+                                         pY[1][0],
+                                         pY[1][1]);
                 }
             }
 
-            SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
-            if (dev_opts.draw_vectors)
-            {
-                auto const& pX = player_1.s->X;
-                auto const& pY = player_1.s->Y;
-                drawing::draw_vector(renderer,
-                                     pX[0][0],
-                                     pX[0][1],
-                                     pY[1][0],
-                                     pY[1][1]);
-            }
-        }
-
-        // Render game hud.
-        {
-            game_hud.update(player_2);
-            game_hud.render(renderer, game_hud_texture);
-        }
 #endif // DISABLE_RENDER
 
-        // Render dev hud. This is a bit wasteful if the hud is not enabled
-        // however for not it is good to do so we can keep an eye on CPU usage.
-        {
-            window_update(window_data);
-            window_render(renderer, dev_hud_texture, &editor_window, window_data);
-        }
-
-        // Copy textures from kiss to the screen.
-        {
-            SDL_RenderCopy(renderer,
-                           game_hud_texture,
-                           &game_hud.window.rect,
-                           &game_hud.window.rect);
-
-            if (dev_opts.display_hud)
+            // Render game hud.
             {
-                SDL_RenderCopy(renderer,
-                               dev_hud_texture,
-                               &editor_window.rect,
-                               &editor_window.rect);
+                game_hud.update(player_2);
+                game_hud.render(renderer, game_hud_texture);
             }
 
+            // Render dev hud. This is a bit wasteful if the hud is not enabled
+            // however for not it is good to do so we can keep an eye on CPU usage.
+            {
+                window_update(window_data);
+                window_render(renderer, dev_hud_texture, &editor_window, window_data);
+            }
 
-            SDL_RenderPresent(renderer);
+            // Copy textures from kiss to the screen.
+            {
+                SDL_RenderCopy(renderer,
+                               game_hud_texture,
+                               &game_hud.window.rect,
+                               &game_hud.window.rect);
+
+                if (dev_opts.display_hud)
+                {
+                    SDL_RenderCopy(renderer,
+                                   dev_hud_texture,
+                                   &editor_window.rect,
+                                   &editor_window.rect);
+                }
+
+
+                SDL_RenderPresent(renderer);
+            }
         }
 
-
-        game_loop.end();
-        game_loop.delay();
-
-        easer.step(game_loop.time_taken + game_loop.delay_time);
-    }
+        SDL_Delay(1);
+    } // end while
 
     serialisation::save(game_state_path, dev_opts);
 

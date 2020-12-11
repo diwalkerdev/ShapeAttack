@@ -18,13 +18,14 @@ struct Bullet {
 
 };
 
-inline void update_bullet(Bullet& bullet, float dt)
+inline void integrate(Bullet& bullet, float dt)
 {
     auto x = cosf(bullet.angle) * 100;
     auto y = -sinf(bullet.angle) * 100;
 
     linalg::Matrixf<2, 2> u{{{x, y}, {0, 0}}};
     entity::set_input(bullet.s, u);
+
     entity::integrate(bullet.s, dt);
 }
 
@@ -87,22 +88,13 @@ struct Player {
         if (bullets.size() < bullets.max_size())
         {
             auto& bullet = bullets.increase();
-
-            //entity::Entity e = *s;
-
-            //auto bullet = make_bullet(crosshair.R[0]);
-
-            // TODO: is this necessary if we center on center immediately afterwards?
-            // bullet.e.X = e.X;
+            bullet.angle = crosshair.rotX[0];
 
             center_on_center(bullet.s, this->s);
+            *bullet.r = *bullet.s;
         }
     }
 };
-
-inline void update(Player& player)
-{
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -120,8 +112,6 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
 
     int index;
     reserve(alloca, index);
-
-    printf("Index : %d\n", index);
 
     Player player;
     player.s = &alloca.data[index];
@@ -181,9 +171,9 @@ inline void update_bullets(entity::Player&               player,
 
     // Update the bullet positions.
     //
-    for (auto& bullet : bullets)
+    for (auto& bullet : player.bullets)
     {
-        update_bullet(bullet, dt);
+        integrate(bullet, dt);
     }
 
     // Check if bullets have hit any of the other players.
