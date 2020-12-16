@@ -11,7 +11,6 @@ inline auto rect_center(SDL_FRect const& rect) -> linalg::Vectorf<2>
              rect.y + (rect.h / 2.f)}};
 }
 
-// TODO: r-l value duplication.
 inline auto to_screen_rect(SDL_FRect const& rect)
 {
     SDL_FRect dst = rect;

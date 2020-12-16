@@ -253,10 +253,10 @@ int main(int argc, char* argv[])
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
 
-    easing::Easer      easer;
-    SDL_Renderer*      renderer;
-    SDL_Event          e;
-    kiss_array         objects;
+    easing::Easer easer;
+    SDL_Renderer* renderer;
+    SDL_Event     e;
+    kiss_array    objects;
 
     entity::Allocator alloca;
 
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
     DevOptions dev_opts;
 
     //GameLoopTimer      game_loop{0};
-    int                draw;
+    int                         draw;
     std::vector<entity::Player> players{
         entity::make_player(alloca, {100.f, 100.f, 80.f, 80.f}),
         entity::make_player(alloca, {200.f, 100.f, 80.f, 80.f})};
@@ -385,14 +385,14 @@ int main(int argc, char* argv[])
     // Game loop timer stuff.
     auto         clock = high_res_clock();
     float        fps;
-    auto         current_time = clock.now();
-    auto         new_time     = clock.now();
-    auto         frame_time   = std::chrono::duration<double>(new_time - current_time);
-    double       accumulator  = 0;
+    auto         current_time       = clock.now();
+    auto         new_time           = clock.now();
+    auto         frame_time         = std::chrono::duration<double>(new_time - current_time);
+    double       accumulator        = 0;
     double       render_accumulator = 0;
-    double       dit          = 0;
+    double       dit                = 0;
     const double SIM_DT             = 0.05;
-    const double SIM_DT_STEP  = SIM_DT / 4;
+    const double SIM_DT_STEP        = SIM_DT / 4;
 
 
     while (!game_events.quit)
@@ -473,10 +473,13 @@ int main(int argc, char* argv[])
                                                   soft_boundaries);
             }
 
-            entity::set_input(player_1.crosshair,
+            entity::set_input(player_1.aim.s,
                               game_events.player_rotation);
-            entity::integrate(player_1.crosshair,
+            entity::integrate(player_1.aim.s,
                               SIM_DT);
+
+            //entity::integrate(player_1.crosshair,
+            //SIM_DT);
 
             update_bullets(player_1,
                            players,
@@ -554,12 +557,11 @@ int main(int argc, char* argv[])
 
                 // Render crosshair.
                 {
-                    entity::update_crosshair(player_1.crosshair, player_1.r);
+                    entity::update_crosshair(player_1);
 
                     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
 
-                    auto const* e    = player_1.crosshair.r;
-                    SDL_FRect   fdst = to_screen_rect(sdl_rect(e));
+                    SDL_FRect fdst = to_screen_rect(player_1.crosshair.rect);
                     SDL_RenderFillRectF(renderer, &fdst);
                 }
 

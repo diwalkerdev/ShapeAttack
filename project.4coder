@@ -1,0 +1,50 @@
+version(1);
+project_name = "Untitled2D";
+patterns = {
+"*.c",
+"*.cpp",
+"*.h",
+"*.m",
+"*.bat",
+"*.sh",
+"*.4coder",
+};
+blacklist_patterns = {
+".*",
+};
+load_paths_base = {
+ { ".", .relative = true, .recursive = true, },
+};
+load_paths = {
+ { load_paths_base, .os = "win", },
+ { load_paths_base, .os = "linux", },
+ { load_paths_base, .os = "mac", },
+};
+
+command_list = {
+ { .name = "build",
+   .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
+   .cmd = { { "build.bat" , .os = "win"   },
+            { "aim build --target=builds/linux-clang++-debug untitled2d", .os = "linux" },
+            { "./build.sh", .os = "mac"   }, }, },
+ { .name = "run",
+   .out = "*run*", .footer_panel = false, .save_dirty_files = false,
+   .cmd = { { "builds\\out", .os = "win"   },
+            { "builds/linux-clang++-debug/untitled2d/Untitled2D.exe" , .os = "linux" },
+            { "builds/out" , .os = "mac"   }, }, },
+
+ { .name = "build-tests",
+   .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
+   .cmd = { { "build.bat" , .os = "win"   },
+            { "aim build --target=builds/linux-clang++-debug test", .os = "linux" },
+            { "./build.sh", .os = "mac"   }, }, },
+ { .name = "run-tests",
+   .out = "*run*", .footer_panel = false, .save_dirty_files = false,
+   .cmd = { { "builds\\out", .os = "win"   },
+            { "builds/linux-clang++-debug/test/Tests.exe" , .os = "linux" },
+            { "builds/out" , .os = "mac"   }, }, },
+};
+fkey_command[1] = "build";
+fkey_command[2] = "run";
+fkey_command[3] = "build-tests";
+fkey_command[4] = "run-tests";

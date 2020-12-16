@@ -1,9 +1,9 @@
 #ifndef GAME_HUD_H
 #define GAME_HUD_H
 
+#include "entity/core.hpp"
 #include "gameevents.h"
 #include "kiss_sdl.h"
-#include "entity/core.hpp"
 #include "linalg/matrix.hpp"
 #include <SDL2/SDL.h>
 #include <string>
@@ -84,7 +84,7 @@ struct GameHud {
     {
     }
 
-    void update(entity::Player &player)
+    void update(entity::Player& player)
     {
         hunger_bar.fraction = player.health;
     }

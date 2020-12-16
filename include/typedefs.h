@@ -12,7 +12,7 @@ using uint16 = uint16_t;
 using uint32 = uint32_t;
 using uint64 = uint64_t;
 
-using byte   = int8_t;
-using ubyte  = uint8_t;
+using byte  = int8_t;
+using ubyte = uint8_t;
 
 #endif

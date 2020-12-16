@@ -30,10 +30,51 @@ inline void set_input(Entity* e, linalg::Matrixf<2, 2> const& u)
 
 inline void integrate(Entity* e, float dt)
 {
-    e->Xdot = (e->X + (dt * e->A * e->X)) + (dt * e->B * e->u);
+    e->Xdot = (e->X + (dt * e->A * e->X)) + ((dt * e->B) * e->u);
     e->Y    = e->X;
     e->X    = e->Xdot;
 }
+
+// For state(pos, vel) with 2 dimensions, X is:
+// px, py
+// vx, vy
+//
+// However rotation has state(angle, angular vel) but is one dimensional, so X is:
+// ox, o=theta
+// wx  w=omega
+//
+// The input vector u needs to be 2x1 as you can potentially input a position
+// or an angular velocity.
+//
+// Then we want the results A*X and B*u to yield 2x1 matrices.
+// Therefore A and B need to be 2x2 matrices.
+// The easy way to think about this is if you imaging multiplying X and u by an
+// identity matrix. You'd get back the original vectors since I does nothing.
+struct EntityRotation {
+    linalg::Matrixf<2, 1> X; // position, velocity.
+    linalg::Matrixf<2, 1> Xdot; // velocity, acceleration.
+    linalg::Matrixf<2, 1> Y;
+
+    linalg::Matrixf<2, 2> A;
+    linalg::Matrixf<2, 2> B;
+
+    linalg::Matrixf<2, 1> u;
+};
+
+inline void integrate(EntityRotation* e, float dt)
+{
+    e->Xdot = (e->X + (dt * e->A * e->X)) + ((dt * e->B) * e->u);
+    e->Y    = e->X;
+    e->X    = e->Xdot;
+}
+
+// TODO(DW): this should take a vector.
+inline void set_input(EntityRotation* e, float u)
+{
+    e->u[0] = 0;
+    e->u[1] = u;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -90,7 +131,7 @@ inline auto rect_center(EntityStatic const& entity)
     return ::rect_center(entity.rect);
 }
 
-inline auto center_on_point(Entity &a, linalg::Vectorf<2> const& center)
+inline auto center_on_point(Entity& a, linalg::Vectorf<2> const& center)
 {
     copy_from(a.X[0], center);
     a.X[0] += linalg::Vectorf<2>{{-a.w / 2.f, -a.h / 2.f}};
@@ -102,7 +143,7 @@ inline auto center_on_point(Entity* a, linalg::Vectorf<2> const& center)
     a->X[0] += linalg::Vectorf<2>{{-a->w / 2.f, -a->h / 2.f}};
 }
 
-inline auto center_on_center(Entity &a, Entity const&b)
+inline auto center_on_center(Entity& a, Entity const& b)
 {
     center_on_point(a, rect_center(b));
 }

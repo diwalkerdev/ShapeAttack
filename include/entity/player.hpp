@@ -3,44 +3,28 @@
 #include "algorithms/find.hpp"
 #include "collision/collision.hpp"
 #include "containers/backfill_vector.hpp"
-#include "entity/crosshair.hpp"
 #include "entity/entity.hpp"
 #include "entity/entityallocator.hpp"
+#include "linalg/matrix.hpp"
+#include "linalg/trans.hpp"
 
 namespace entity {
 
-///////////////////////////////////////////////////////////////////////////////
-
-struct Bullet {
-    entity::Entity* s;
-    entity::Entity* r;
-    float          angle;
-
-};
-
-inline void integrate(Bullet& bullet, float dt)
-{
-    auto x = cosf(bullet.angle) * 100;
-    auto y = -sinf(bullet.angle) * 100;
-
-    linalg::Matrixf<2, 2> u{{{x, y}, {0, 0}}};
-    entity::set_input(bullet.s, u);
-
-    entity::integrate(bullet.s, dt);
-}
-
-
+// Bullet stuff
 ///////////////////////////////////////////////////////////////////////////////
 const float BULLET_WIDTH  = 10;
 const float BULLET_HEIGHT = 10;
 
+struct Bullet {
+    entity::Entity* s;
+    entity::Entity* r;
+    float           angle;
+};
+
 inline void init_bullet(Bullet* bullet, Allocator& alloca, float angle)
 {
-    int index;
-    reserve(alloca, index);
+    reserve(alloca, bullet->s, bullet->r);
 
-    bullet->s     = &alloca.data[index];
-    bullet->r     = &alloca.interpolated[index];
     bullet->angle = angle;
 
     auto* e = bullet->s;
@@ -58,11 +42,49 @@ inline Bullet make_bullet(Allocator& alloca, float angle)
     return bullet;
 }
 
+inline void integrate(Bullet& bullet, float dt)
+{
+    auto x = cosf(bullet.angle) * 100;
+    auto y = -sinf(bullet.angle) * 100;
+
+    linalg::Matrixf<2, 2> u{{{x, y}, {0, 0}}};
+    entity::set_input(bullet.s, u);
+
+    entity::integrate(bullet.s, dt);
+}
+
+// Crosshair stuff
+///////////////////////////////////////////////////////////////////////////////
+
+struct Crosshair {
+    SDL_FRect    rect;
+    SDL_Texture* texture;
+};
+
+inline auto make_crosshair()
+{
+    entity::Crosshair ch;
+
+    ch.rect.w = 20;
+    ch.rect.h = 20;
+
+    return ch;
+}
+
+
+// Player stuff
+///////////////////////////////////////////////////////////////////////////////
+
 struct Player {
     entity::Entity* s;
     entity::Entity* r;
 
-    entity::Crosshair crosshair;
+    struct {
+        entity::EntityRotation* s;
+        entity::EntityRotation* r;
+    } aim;
+
+    entity::Crosshair           crosshair;
     backfill_vector<Bullet, 10> bullets;
 
     SDL_Texture* texture;
@@ -80,7 +102,7 @@ struct Player {
         entity::Entity* e = s;
         e->X[0][0]        = point[0];
         e->X[0][1]        = point[1];
-        health    = 1;
+        health            = 1;
     }
 
     void fire()
@@ -88,15 +110,13 @@ struct Player {
         if (bullets.size() < bullets.max_size())
         {
             auto& bullet = bullets.increase();
-            bullet.angle = crosshair.rotX[0];
+            bullet.angle = aim.r->Y[0];
 
             center_on_center(bullet.s, this->s);
             *bullet.r = *bullet.s;
         }
     }
 };
-
-///////////////////////////////////////////////////////////////////////////////
 
 inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
 {
@@ -110,12 +130,9 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
     float const width  = rect.w;
     float const height = rect.h;
 
-    int index;
-    reserve(alloca, index);
-
     Player player;
-    player.s = &alloca.data[index];
-    player.r = &alloca.interpolated[index];
+    reserve(alloca, player.s, player.r);
+    reserve(alloca, player.aim.s, player.aim.r);
 
     auto* entity = player.s;
     entity->w    = width;
@@ -130,7 +147,21 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
     entity->B = linalg::Matrixf<2, 2>::I();
     entity->B *= 500.f;
 
-    player.crosshair   = entity::make_crosshair(alloca);
+    // Init the player's aim.
+    {
+        player.aim.s->A[0][0] = 0;
+        player.aim.s->A[0][1] = 1;
+        player.aim.s->A[1][0] = k;
+        player.aim.s->A[1][1] = b;
+
+        float const s         = 10;
+        player.aim.s->B[0][0] = s * 1;
+        player.aim.s->B[0][1] = 0;
+        player.aim.s->B[1][0] = 0;
+        player.aim.s->B[1][1] = s * 1;
+    }
+
+    player.crosshair   = entity::make_crosshair();
     player.health      = 0.5f;
     player.restitution = 0.5f;
 
@@ -143,6 +174,7 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
 
     return player;
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 inline auto rect_center(Player const& player)
@@ -201,7 +233,6 @@ inline void update_bullets(entity::Player&               player,
 
         for (auto i : indices)
         {
-            fmt::print("FREE BULLET HARD {0}\n", i);
             bullets.remove(i);
         }
     }
@@ -222,7 +253,6 @@ inline void update_bullets(entity::Player&               player,
 
         for (auto i : indices)
         {
-            fmt::print("FREE BULLET HARD {0}\n", i);
             bullets.remove(i);
         }
     }
@@ -240,10 +270,37 @@ inline void update_bullets(entity::Player&               player,
 
     for (auto i : indices)
     {
-        fmt::print("FREE BULLET SCREEN {0}\n", i);
         bullets.remove(i);
     }
 }
+
+
+inline void update_crosshair(entity::Player& player)
+{
+    // This function places the crosshair.
+    // This requires the player's current position, the player's aim and
+    // a vector that places the crosshair at some length away from the
+    // player.
+    SDL_FRect& ch = player.crosshair.rect;
+
+    // Move the crosshair to the center of the player.
+    //center_on_center(ch, player.r);
+
+    auto player_center = rect_center(player.r);
+    ch.x               = player_center[0] - (ch.w / 2.f);
+    ch.y               = player_center[1] - (ch.h / 2.f);
+
+    // Create a vector rotated by the player's aim.
+    linalg::Vectorf<2> m{{80, 0}};
+    auto&              Y = player.aim.r->X;
+
+    m = lrotzf(Y[0]) * m;
+
+    // Finally translate the crosshair away from the player using the m vector.
+    ch.x += m[0];
+    ch.y += m[1];
+}
+
 }
 
 namespace std {
