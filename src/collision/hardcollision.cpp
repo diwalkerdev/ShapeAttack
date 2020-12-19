@@ -41,7 +41,7 @@ void detect_hard_collisions(float                                    dt,
                 // printf("Collided at iteration %d\n", i);
 
                 // Go back to a position where the player is hasn't collided with the object.
-                player = player_copy;
+                player   = player_copy;
                 auto& pX = player.s->X;
                 auto& pw = player.s->w;
                 auto& ph = player.s->h;

@@ -5,12 +5,12 @@
 
 template <typename _Tp, std::size_t _Nm>
 struct backfill_view {
-    typedef _Tp               value_type;
-    typedef value_type*       pointer;
-    typedef value_type const* const_pointer;
-    typedef value_type const*const const_cpointer;
-    typedef value_type&       reference;
-    typedef const value_type& const_reference;
+    typedef _Tp                     value_type;
+    typedef value_type*             pointer;
+    typedef value_type const*       const_pointer;
+    typedef value_type const* const const_cpointer;
+    typedef value_type&             reference;
+    typedef const value_type&       const_reference;
     // typedef value_type*                           iterator;
     // typedef const value_type*                     const_iterator;
     typedef std::size_t size_type;

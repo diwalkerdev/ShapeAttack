@@ -22,8 +22,7 @@ void draw_vector(SDL_Renderer* renderer, float px, float py, float vx, float vy)
 
     float theta = std::atan2(-vy, vx);
 
-    // TODO *=
-    arrow = arrow * rtransf(theta, px + vx, py + vy);
+    arrow *= rtransf(theta, px + vx, py + vy);
 
     linalg::Matrixf<2, 3> vector_tail;
     vector_tail[0][0] = arrow[0][0];

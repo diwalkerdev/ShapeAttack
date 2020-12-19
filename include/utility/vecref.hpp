@@ -12,6 +12,7 @@
 template <typename Tp>
 struct vecref {
     using container = std::vector<Tp>;
+
 public:
     // Ctor
     vecref(container& vec, std::size_t index) noexcept
@@ -39,10 +40,9 @@ public:
     auto get() noexcept -> Tp& { return vec[index]; }
 
 private:
-    container& vec;
+    container&  vec;
     std::size_t index;
 };
 
 template <typename Tp>
 vecref(std::vector<Tp>& vec, int index) -> vecref<Tp>;
-
