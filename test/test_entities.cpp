@@ -3,6 +3,8 @@
 #include "linalg/matrix.hpp"
 #include <stdio.h>
 
+#ifdef TEST_ENTITIES
+
 /*
 void simulate(EntityAllocator& alloca, float dt)
 {
@@ -151,8 +153,6 @@ void test_integration_of_serveral_entities()
     // render();
 }
 
-
-#ifdef TEST_ENTITIES
 
 int main()
 {

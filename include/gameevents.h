@@ -13,8 +13,8 @@ struct GameEvents {
 
     int quit = 0;
 
-    linalg::Matrixf<2, 2> player_movement = 0;
-    float                 player_rotation = 0;
+    linalg::Matrixf<2, 2> player_movement{0};
+    linalg::Matrixf<2, 1> player_rotation{0};
     easing::Debounce      fire;
 };
 

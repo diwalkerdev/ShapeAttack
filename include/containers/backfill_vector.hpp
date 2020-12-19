@@ -2,6 +2,7 @@
 
 #include <array>
 #include <stdexcept>
+#include <vector>
 
 template <typename _Tp, std::size_t _Nm>
 struct backfill_vector {
@@ -150,7 +151,7 @@ struct backfill_vector {
             throw std::out_of_range("increase exceeds size of backfill_vector.");
         }
         reference x = at(last);
-        last = next;
+        last        = next;
         return x;
     }
 
@@ -164,8 +165,66 @@ struct backfill_vector {
         last -= 1;
     }
 
+    void remove(std::vector<std::size_t> idx)
+    {
+        // a is the current value to look at.
+        // pivot is the position after partitioning using the value of a.
+        auto                  pivot = idx.begin();
+        decltype(idx.begin()) a;
+        std::size_t           back = size() - 1;
+
+        while (pivot < idx.end())
+        {
+            // 2 4 6 2 becomes
+            // 2 2 4 6
+            //
+            // a p   e
+
+            a     = pivot;
+            pivot = std::partition(a, idx.end(), [a](auto const& item) { return item == *a; });
+
+            if (*a >= size())
+            {
+                printf("oob\n");
+                pivot += 1;
+                continue;
+            }
+
+            while (true)
+            {
+                // Then check if the back is also to be removed - i.e. it is
+                // not a valid swap location.
+                auto count = std::count(pivot, idx.end(), back);
+
+                if (count == 0)
+                {
+                    break;
+                }
+
+                printf("back -= 1\n");
+                back -= 1; // try a different back location.
+            }
+
+            if (back < *a)
+            {
+                printf("back < *a\n");
+                // The item at a has been removed by reducing the back.
+                // No swap is required.
+                continue;
+            }
+
+            using std::swap;
+            auto& item      = at(back);
+            auto& to_remove = at(*a);
+            swap(to_remove, item);
+
+            back -= 1;
+        }
+
+        last = back + 1;
+    }
+
 private:
     std::array<_Tp, _Nm> vector;
     std::size_t          last{};
 };
-

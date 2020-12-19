@@ -9,7 +9,7 @@
 void test_make_debounce_switch_creates_one_element()
 {
     easing::Easer easer;
-    auto  debounce = make_debounce_switch(easer, 10);
+    auto          debounce = make_debounce_switch(easer, 10);
 
     assert(easer.debouncers.size() == 1);
     assert(easer.debouncers[0].timeout_ms == 10);

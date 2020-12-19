@@ -1,13 +1,13 @@
 #pragma once
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace algorithm {
 
 
 template <typename Tp, typename Fn>
-auto find_indices(Tp const& container, Fn predicate) -> std::vector<std::size_t>
+auto find_indices(Tp const& container, Fn& predicate) -> std::vector<std::size_t>
 {
     std::vector<std::size_t> results;
 
@@ -21,7 +21,7 @@ auto find_indices(Tp const& container, Fn predicate) -> std::vector<std::size_t>
 }
 
 template <typename Tp, typename Fn>
-auto rfind_indices(Tp const& container, Fn predicate) -> std::vector<std::size_t>
+auto rfind_indices(Tp const& container, Fn& predicate) -> std::vector<std::size_t>
 {
     std::vector<std::size_t> results;
 

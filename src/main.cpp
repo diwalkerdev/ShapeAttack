@@ -5,7 +5,6 @@
 #include "easing/core.hpp"
 #include "entity/core.hpp"
 #include "entity/entityallocator.hpp"
-#include "fmt/core.h"
 #include "gameevents.h"
 #include "gamehud.h"
 #include "kiss_sdl.h"
@@ -75,7 +74,7 @@ void handle_input_states(SDL_Event& event, GameEvents& game_events, DevOptions& 
             {{0.f, 0.f},
              {x_axis, y_axis}}};
 
-        game_events.player_rotation = cw - cc;
+        game_events.player_rotation = {{0.f, float(cw - cc)}};
     }
 }
 
@@ -277,7 +276,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        fmt::print("{0} does not exist.", game_state_path.c_str());
+        printf("%s does not exist.", game_state_path.c_str());
     }
 
     // TODO: This leaks memory.

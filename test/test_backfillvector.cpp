@@ -1,5 +1,4 @@
 #include "containers/backfill_vector.hpp"
-#include "fmt/core.h"
 #include <cassert>
 
 
@@ -110,6 +109,102 @@ void test_vector_back_fills_when_items_removed()
     assert(bfv.at(0) == 4);
 }
 
+
+void test_remove_from_list_of_indices()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({1, 3});
+    // 12345
+    // 1X345
+    // 1534X
+    // 153XX
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(1) == 5);
+    assert(bfv.at(2) == 3);
+    assert(bfv.size() == 3);
+}
+
+void test_does_not_remove_duplicate_idx_more_than_once()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({1, 1, 3});
+    // 12345
+    // 1X345
+    // 1534X
+    // 153XX
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(1) == 5);
+    assert(bfv.at(2) == 3);
+    assert(bfv.size() == 3);
+}
+
+void test_does_not_remove_duplicate_idx_more_than_once_variant_2()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({3, 3, 1});
+    // 12345
+    // 123x5
+    // 1235X
+    // 1X35X
+    // 153XX
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(1) == 5);
+    assert(bfv.at(2) == 3);
+    assert(bfv.size() == 3);
+}
+
+void test_remove_last_item()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({4, 4});
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(3) == 4);
+    assert(bfv.size() == 4);
+}
+
+void test_remove_first_item()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({0, 0});
+    assert(bfv.at(0) == 5);
+    assert(bfv.at(1) == 2);
+    assert(bfv.size() == 4);
+}
+
+void test_removes_in_backwards_order()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({4, 3});
+    assert(bfv.at(2) == 3);
+    assert(bfv.size() == 3);
+}
+
+void test_removes_end_sequence()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({2, 3, 4});
+    assert(bfv.at(1) == 2);
+    assert(bfv.size() == 2);
+}
+
+void test_remove_invalid_indices_does_nothing()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({5, 6});
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(4) == 5);
+    assert(bfv.size() == 5);
+}
+
+void test_remove_empty()
+{
+    auto bfv = make_bfv_12345();
+    bfv.remove({});
+    assert(bfv.at(0) == 1);
+    assert(bfv.at(4) == 5);
+    assert(bfv.size() == 5);
+}
+
 #ifdef TEST_BACKFILL
 
 int main()
@@ -118,9 +213,16 @@ int main()
     test_size_increases_when_items_pushed();
     test_size_decreases_when_items_removed();
     test_riterators();
-    //test_vector_back_fills_when_items_removed();
-
-    fmt::print("Test backfill vector complete.\n");
+    test_vector_back_fills_when_items_removed();
+    test_remove_from_list_of_indices();
+    test_does_not_remove_duplicate_idx_more_than_once();
+    test_does_not_remove_duplicate_idx_more_than_once_variant_2();
+    test_remove_last_item();
+    test_remove_first_item();
+    test_removes_in_backwards_order();
+    test_removes_end_sequence();
+    test_remove_invalid_indices_does_nothing();
+    printf("TEST_BACKFILL complete.\n");
     return 0;
 }
 

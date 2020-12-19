@@ -1,18 +1,17 @@
 
-#include "fmt/core.h"
+#include "algorithms/find.hpp"
 #include <cassert>
 #include <vector>
-#include "algorithms/find.hpp"
 
 std::vector<int> make_vector_01110()
 {
-    std::vector v{0,1,1,1,0};
+    std::vector v{0, 1, 1, 1, 0};
     return v;
 }
 
 void test_finds_1s()
 {
-    auto v = make_vector_01110();
+    auto v         = make_vector_01110();
     auto predicate = [](int x) { return x == 1; };
     auto indices   = algorithm::find_indices(v, predicate);
 
@@ -51,7 +50,9 @@ int main()
     test_finds_1s();
     test_finds_0s();
     test_rfinds_1s();
-    fmt::print("Test algorithm::find_indices complete.\n");
+
+    printf("Test algorithm::find_indices complete.\n");
+
     return 0;
 }
 #endif

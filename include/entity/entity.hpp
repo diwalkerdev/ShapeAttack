@@ -68,11 +68,15 @@ inline void integrate(EntityRotation* e, float dt)
     e->X    = e->Xdot;
 }
 
-// TODO(DW): this should take a vector.
-inline void set_input(EntityRotation* e, float u)
+inline void set_input(EntityRotation* e, float uo, float uw)
 {
-    e->u[0] = 0;
-    e->u[1] = u;
+    e->u[0] = uo;
+    e->u[1] = uw;
+}
+
+inline void set_input(EntityRotation* e, linalg::Vectorf<2> const& u)
+{
+    e->u = u;
 }
 
 

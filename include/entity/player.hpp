@@ -217,7 +217,10 @@ inline void update_bullets(entity::Player&               player,
             continue;
         }
 
-        // TODO: Remove creating lambda on each iteration.
+        // Note(DW): Lambdas
+        // I believe this to be ok performance-wise. There is no additional overhead
+        // in comparison to a functor and is generally equivalent to calling a function.
+
         auto collided_hard = [&other_player](Bullet const& bullet) {
             auto center   = rect_center(bullet.s);
             auto collided = collision::is_point_in_rect(center,
@@ -229,19 +232,16 @@ inline void update_bullets(entity::Player&               player,
             return collided;
         };
 
-        auto indices = algorithm::rfind_indices(bullets, collided_hard);
 
-        for (auto i : indices)
-        {
-            bullets.remove(i);
-        }
+        auto indices = algorithm::find_indices(bullets, collided_hard);
+        bullets.remove(indices);
     }
 
     // Check if the bullets have hit any walls.
     //
     for (auto const& hard_entity : hard_entities)
     {
-        // TODO: Remove creating lambda on each iteration.
+        // See Note(DW): Lambdas
         auto collided_hard = [&hard_entity](Bullet const& bullet) {
             auto& pX = bullet.s->X;
 
@@ -249,29 +249,19 @@ inline void update_bullets(entity::Player&               player,
             return collision::is_point_in_rect(origin, hard_entity);
         };
 
-        auto indices = algorithm::rfind_indices(bullets, collided_hard);
-
-        for (auto i : indices)
-        {
-            bullets.remove(i);
-        }
+        auto indices = algorithm::find_indices(bullets, collided_hard);
+        bullets.remove(indices);
     }
 
     // Check if the bullets have left the screen.
     //
-    auto within_screen = [&screen_rect](Bullet const& bullet) {
+    auto left_screen = [&screen_rect](Bullet const& bullet) {
         auto center = rect_center(bullet.s);
         return !collision::is_point_in_rect(center, screen_rect);
     };
 
-    // TODO: Is there a way to do this which is less error prone?
-    // Removing several elements must be done in reverse index order.
-    auto indices = algorithm::rfind_indices(bullets, within_screen);
-
-    for (auto i : indices)
-    {
-        bullets.remove(i);
-    }
+    auto indices = algorithm::find_indices(bullets, left_screen);
+    bullets.remove(indices);
 }
 
 
@@ -300,7 +290,6 @@ inline void update_crosshair(entity::Player& player)
     ch.x += m[0];
     ch.y += m[1];
 }
-
 }
 
 namespace std {
