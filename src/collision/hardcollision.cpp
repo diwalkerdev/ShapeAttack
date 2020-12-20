@@ -49,9 +49,8 @@ void detect_hard_collisions(float                                    dt,
                 linalg::Matrixf<2, 1> ux{{1.f, 0.f}};
                 linalg::Matrixf<2, 1> uy{{0.f, 1.f}};
 
-                // TODO: LA, automatically return float from the dot product below (eliminate [0]).
-                auto  uxdot = (T(ux) * ux)[0];
-                auto  uydot = (T(uy) * uy)[0];
+                float uxdot = (T(ux) * ux);
+                float uydot = (T(uy) * uy);
                 float ex    = uxdot * (entity.rect.w * 0.5);
                 float ey    = uydot * (entity.rect.h * 0.5);
 
@@ -60,8 +59,8 @@ void detect_hard_collisions(float                                    dt,
 
                 auto d = T(c - r);
 
-                float dx = (d * ux)[0];
-                float dy = (d * uy)[0];
+                float dx = (d * ux);
+                float dy = (d * uy);
 
                 if (dx > ex)
                 {
@@ -107,10 +106,9 @@ void detect_hard_collisions(float                                    dt,
                 }
 
                 {
-                    // TODO write norm function.
-                    auto c_norm = norm(c_vec);
+                    auto c_norm = linalg::norm(c_vec);
                     auto v      = linalg::Vectorf<2>(pX[1]);
-                    auto v_norm = norm(v);
+                    auto v_norm = linalg::norm(v);
 
                     float pv_x;
                     float pv_y;
@@ -118,13 +116,13 @@ void detect_hard_collisions(float                                    dt,
                     // TODO: must be better way to refactor this.
                     if (x_edge)
                     {
-                        auto c_norm_x = ((T(ux) * c_norm))[0];
+                        auto c_norm_x = ((T(ux) * c_norm));
                         auto c_norm_y = 0.f;
 
                         // So like above we should get the x and y part of the
                         // velocity vector by taking the doc product with with
                         // the basis vectors,
-                        auto v_x = (c_norm_x * (T(ux) * (v_norm)))[0];
+                        auto v_x = (c_norm_x * (T(ux) * (v_norm)));
 
                         // TODO: should compare restitutions and use the smallest one.
                         pv_x = v_x * player.restitution;
@@ -133,9 +131,9 @@ void detect_hard_collisions(float                                    dt,
                     else
                     {
                         auto c_norm_x = 0.f;
-                        auto c_norm_y = ((T(uy) * c_norm))[0];
+                        auto c_norm_y = ((T(uy) * c_norm));
 
-                        auto v_y = (c_norm_y * (T(uy) * v_norm))[0];
+                        auto v_y = (c_norm_y * (T(uy) * v_norm));
 
                         pv_x = uxdot; // allows gliding.
                         pv_y = v_y * player.restitution;

@@ -7,7 +7,6 @@
 #include "entity/entityallocator.hpp"
 #include "gameevents.h"
 #include "gamehud.h"
-#include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
@@ -18,6 +17,9 @@
 #include "shapes.hpp"
 #include "typedefs.h"
 // #include "spdlog/spdlog.h"
+extern "C" {
+#include "kiss_sdl.h"
+}
 
 #include <SDL2/SDL.h>
 #include <algorithm>

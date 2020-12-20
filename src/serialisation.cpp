@@ -1,3 +1,4 @@
+#include "errorcodes.hpp"
 #include "gameevents.h"
 #include "msgpack.hpp"
 #include <filesystem>
@@ -49,8 +50,7 @@ auto save(std::filesystem::path const& file_path, DevOptions& events) -> void
     ofile.open(file_path, std::ios::out | std::ios::trunc | std::ios::binary);
     if (!ofile.is_open())
     {
-        // TODO Error codes should live in errorcodes.h.
-        exit(-2);
+        exit(SERIALISATION_FAILED_TO_OPEN_SAVE_FILE);
     }
 
     msgpack::sbuffer sbuf;
@@ -71,8 +71,7 @@ auto load(std::filesystem::path const& file_path, DevOptions& events) -> void
 
     if (!ifile.is_open())
     {
-        // TODO Error codes should live in errorcodes.h.
-        exit(-3);
+        exit(SERIALISATION_FAILED_TO_OPEN_LOAD_FILE);
     }
 
     std::string the_file;

@@ -13,8 +13,7 @@ linalg::Matrixf<4, 3> vector_head{{{+0, +0, +1},
 void draw_vector(SDL_Renderer* renderer, float px, float py, float vx, float vy)
 {
     auto arrow = vector_head;
-    // TODO use column operator.
-    for (auto row : linalg::iter(arrow))
+    for (auto& row : linalg::iter(arrow))
     {
         row[0] *= 10;
         row[1] *= 10;
