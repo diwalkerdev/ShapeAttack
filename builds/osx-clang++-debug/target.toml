@@ -41,16 +41,12 @@ defines = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]
 [[builds]]
     name = "untitled2d"
     buildRule = "exe"
-    requires = ["spdlog", "fmt", "imgui"]
+    requires = ["spdlog", "fmt"]
     outputName = "untitled2d"
     srcDirs = ["src"]
     includePaths = [
         "/usr/local/include/SDL2",
         "include",
-        "lib/LinAlg/include",
-        "lib/spdlog/include",  # TODO: this shouldn't be necessary as the include path should be added from the requires.
-        "lib/fmt/include",
-        "lib/imgui"
     ]
     libraries = ["SDL2"]
 
@@ -58,14 +54,11 @@ defines = ["-DSPDLOG_COMPILED_LIB", "-DSPDLOG_FMT_EXTERNAL"]
 [[builds]]
     name = "test"
     buildRule = "exe"
+    requires = []
     outputName = "Tests"
     srcDirs = ["test"]
     includePaths = [
         "/usr/local/include/SDL2",
         "include",
-        "lib/LinAlg/include",
-        "lib/spdlog/include",  # TODO: this shouldn't be necessary as the include path should be added from the requires.
-        "lib/fmt/include",
-        "lib/Meliorate/include"
     ]
     libraries = ["SDL2"]

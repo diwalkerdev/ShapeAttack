@@ -38,6 +38,7 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
     name = "kissSDL"
     compiler = "clang"
     flags = [
+        "-std=c89",
         "-O0",
         "-g",
         "-fsanitize=address",
