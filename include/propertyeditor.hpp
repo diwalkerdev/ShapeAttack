@@ -34,21 +34,21 @@ inline auto associated_widget(bool const*) -> kiss_label;
 // 1. General variadic template declaration.
 //    Declare that the follow struct will be variadic.
 template <typename... Tp>
-struct DataStructure {
+struct VariadicDataEditor {
 };
 
 // 2. Specialisation - deals with the variadic parameter unpacking.
 //    Given vargs, how are they consumed? 1 at a time? 2 at a time?
 template <typename Tp, typename... Args>
-struct DataStructure<std::tuple<const char*, Tp*>, Args...> {
+struct VariadicDataEditor<std::tuple<const char*, Tp*>, Args...> {
     const char*                       label;
     Tp*                               data;
     kiss_label                        label_widget;
     decltype(associated_widget(data)) data_widget;
 
-    DataStructure<Args...> args;
+    VariadicDataEditor<Args...> args;
 
-    DataStructure(std::tuple<const char*, Tp*> tup, const Args&... args)
+    VariadicDataEditor(std::tuple<const char*, Tp*> tup, const Args&... args)
         : label(std::get<0>(tup))
         , data(std::get<1>(tup))
         , args(args...)
@@ -60,11 +60,11 @@ struct DataStructure<std::tuple<const char*, Tp*>, Args...> {
 //    Specifies the specialisation from a constructor call.
 //    Without this the compiler will attempt to use the general form with doesn't have a suitable constructor.
 template <typename Tp, typename... Args>
-DataStructure(std::tuple<const char*, Tp*>, Args...) -> DataStructure<std::tuple<const char*, Tp*>, Args...>;
+VariadicDataEditor(std::tuple<const char*, Tp*>, Args...) -> VariadicDataEditor<std::tuple<const char*, Tp*>, Args...>;
 
 
 template <typename Tp, typename... Args>
-using GenericWindowArgs = DataStructure<std::tuple<const char*, Tp>, Args...>;
+using GenericWindowArgs = VariadicDataEditor<std::tuple<const char*, Tp>, Args...>;
 
 
 // 4. Get

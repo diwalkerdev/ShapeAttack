@@ -296,9 +296,8 @@ int main(int argc, char* argv[])
     GameHud  game_hud;
 
 
-    // TODO: Refactor DataStructure name
-    // TODO: Refactor how the window, texture and grid are all created.
-    DataStructure window_data(
+    // TODO VariadicDataEditor: Refactor how the window, grid and data are all created.
+    VariadicDataEditor window_data(
         // std::tuple{"FPS", (const float*)&fps},
         std::tuple{"Draw Minkowski", &dev_opts.draw_minkowski},
         std::tuple{"Show Vectors", &dev_opts.draw_vectors},
@@ -505,8 +504,13 @@ int main(int argc, char* argv[])
             update(alloca);
         }
 
-        // TODO: Better explanation.
-        // Forward integrate.
+        // Perform forward integration.
+        // This uses the velocities from the last simulation step to estimate the
+        // location of the entities for the current render step.
+        // This improves how the objects move across the screen as the positions
+        // are much better aligned to what they should be for the render step.
+        // Without this, we'd get large jumps, as there is always some time
+        // remaining after the simulation.
         interpolate(alloca, dit);
 
         // easing

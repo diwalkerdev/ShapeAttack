@@ -18,7 +18,7 @@ struct fmt::formatter<linalg::Matrix<Tp, M, N>> {
         {
             for (auto el : row)
             {
-                //  TODO: forward on the representation from the parse step.
+                // MAYBE: forward on the representation from the parse step.
                 buffer += fmt::format("{0} ", el);
             }
             buffer += "\n";
