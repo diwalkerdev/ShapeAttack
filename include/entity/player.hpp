@@ -75,6 +75,9 @@ inline auto make_crosshair()
 // Player stuff
 ///////////////////////////////////////////////////////////////////////////////
 
+constexpr const float PLAYER_WIDTH{80.f};
+constexpr const float PLAYER_HEIGHT{80.f};
+
 struct Player {
     entity::Entity* s;
     entity::Entity* r;

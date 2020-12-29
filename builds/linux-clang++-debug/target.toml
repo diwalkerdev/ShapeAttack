@@ -73,6 +73,7 @@ defines = ["-DSPDLOG_FMT_EXTERNAL"]
     includePaths = [
         "/usr/include",
         "/usr/include/SDL2",
+        "src",
         "include",
         "lib/LinAlg/include",
         "lib/fmt/include",

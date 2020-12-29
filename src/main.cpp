@@ -5,8 +5,10 @@
 #include "easing/core.hpp"
 #include "entity/core.hpp"
 #include "entity/entityallocator.hpp"
+#include "entity/player.hpp"
 #include "gameevents.h"
 #include "gamehud.h"
+#include "input/controller.hpp"
 #include "linalg/matrix.hpp"
 #include "linalg/misc.hpp"
 #include "linalg/trans.hpp"
@@ -39,114 +41,6 @@ extern "C" {
 // #define DISABLE_RENDER
 
 //////////////////////////////////////////////////////////////////////////////
-
-void handle_input_states(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
-{
-    int l, r, u, d;
-    int cw, cc; // clockwise, counter clockwise
-    int fire;
-
-    Uint8 const* keyboard_state = SDL_GetKeyboardState(nullptr);
-
-    fire = keyboard_state[SDL_SCANCODE_F];
-    game_events.fire.set(fire);
-
-    l = keyboard_state[SDL_SCANCODE_LEFT];
-    r = keyboard_state[SDL_SCANCODE_RIGHT];
-    u = keyboard_state[SDL_SCANCODE_UP];
-    d = keyboard_state[SDL_SCANCODE_DOWN];
-
-    cw = keyboard_state[SDL_SCANCODE_D];
-    cc = keyboard_state[SDL_SCANCODE_A];
-
-    {
-        int   x_input = r - l;
-        int   y_input = u - d;
-        float x_axis  = static_cast<float>(x_input);
-        float y_axis  = static_cast<float>(y_input);
-
-        if (x_input && y_input)
-        {
-            float norm = std::sqrt((x_input * x_input) + (y_input * y_input));
-            x_axis /= norm;
-            y_axis /= norm;
-        }
-
-        game_events.player_movement = {
-            {{0.f, 0.f},
-             {x_axis, y_axis}}};
-
-        game_events.player_rotation = {{0.f, float(cw - cc)}};
-    }
-}
-
-void handle_input_event(SDL_Event& event, GameEvents& game_events, DevOptions& dev_opts)
-{
-    // Single hit keys.
-    if (event.type == SDL_KEYUP)
-    {
-        switch (event.key.keysym.sym)
-        {
-        case SDLK_LSHIFT:
-            break;
-        default:
-            break;
-        }
-    }
-    else if (event.type == SDL_KEYDOWN)
-    {
-        switch (event.key.keysym.sym)
-        {
-        case SDLK_LSHIFT:
-            break;
-        case SDLK_h:
-            dev_opts.display_hud = !dev_opts.display_hud;
-            break;
-        case SDLK_ESCAPE:
-            game_events.quit = 1;
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-struct GameLoopTimer {
-    int32 start_frame, end_frame, time_taken, delay_time;
-    float fps;
-
-    void start()
-    {
-        start_frame = SDL_GetTicks();
-    }
-
-    void end()
-    {
-        end_frame  = SDL_GetTicks();
-        time_taken = end_frame - start_frame;
-
-        if (time_taken < 33)
-        {
-            delay_time = 33 - time_taken;
-        }
-        else
-        {
-            printf("WARNING FRAME TOOK LONGER THAN 33ms");
-            delay_time = 0;
-        }
-
-        fps = 1000.0 / float(time_taken + delay_time);
-    }
-
-    void delay()
-    {
-        SDL_Delay(delay_time);
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////
 
 SDL_Texture* load_texture(SDL_Renderer* renderer,
                           std::string   path)
@@ -190,11 +84,9 @@ void make_hard_boundaries(float width, float height, std::vector<entity::EntityS
     }
 }
 
-void make_soft_boundaries(entity::Entity const*                    entity,
-                          std::vector<entity::EntityStatic> const& game_entities,
-                          std::vector<SDL_FRect>&                  soft_boundaries)
+void make_soft_boundaries(float w, float h, std::vector<entity::EntityStatic> const& game_entities, std::vector<SDL_FRect>& soft_boundaries)
 {
-    linalg::Vectorf<2> origin{{-entity->w, -entity->h}};
+    linalg::Vectorf<2> origin{{-w, -h}};
     for (auto& soft_entity : game_entities)
     {
         soft_boundaries.push_back(collision::minkowski_boundary(soft_entity, origin));
@@ -210,11 +102,10 @@ extern auto load(std::filesystem::path const&, DevOptions&) -> void;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-auto make_respawn_points(SDL_Rect const&               screen,
-                         std::vector<SDL_FRect> const& hard_boundaries)
+auto make_respawn_points(float w, float h, std::vector<SDL_FRect> const& hard_boundaries)
 {
-    auto xseg = screen.w / 10.f;
-    auto yseg = screen.h / 10.f;
+    auto xseg = w / 10.f;
+    auto yseg = h / 10.f;
 
     std::vector<linalg::Vectorf<2>> valid_spawn_points;
 
@@ -246,40 +137,72 @@ auto player_respawn(entity::Player&                        player,
     player.respawn(point);
 }
 
+auto make_level(float                              w,
+                float                              h,
+                std::vector<entity::EntityStatic>& soft_entities,
+                std::vector<entity::EntityStatic>& walls,
+                std::vector<SDL_FRect>&            soft_boundaries,
+                std::vector<SDL_FRect>&            hard_boundaries,
+                std::vector<SDL_FRect>&            hard_bullet_boundaries,
+                std::vector<linalg::Vectorf<2>>&   respawn_points)
+{
+    soft_entities.push_back(entity::make_food());
+    walls.push_back(entity::make_wall());
+    {
+        make_hard_boundaries(entity::PLAYER_WIDTH,
+                             entity::PLAYER_HEIGHT,
+                             walls,
+                             hard_boundaries);
+        make_soft_boundaries(entity::PLAYER_WIDTH,
+                             entity::PLAYER_HEIGHT,
+                             soft_entities,
+                             soft_boundaries);
+    }
+
+    {
+        make_hard_boundaries(entity::BULLET_WIDTH, entity::BULLET_HEIGHT, walls, hard_bullet_boundaries);
+    }
+
+    assert(soft_entities.size() == soft_boundaries.size());
+    assert(walls.size() == hard_boundaries.size());
+
+    respawn_points = make_respawn_points(w, h, hard_boundaries);
+}
+
 using high_res_clock = std::chrono::high_resolution_clock;
 
-int main(int argc, char* argv[])
+auto load_persistent_data(int         argc,
+                          char*       argv[],
+                          DevOptions& opts)
 {
+
     std::string           argv_str(argv[0]);
     std::filesystem::path exe_base_dir(argv_str.substr(0, argv_str.find_last_of("/")));
     std::filesystem::path game_state_path = (exe_base_dir / "game_state.msgpack");
 
-    easing::Easer easer;
+    if (!std::filesystem::exists(game_state_path))
+    {
+        printf("%s does not exist.", game_state_path.c_str());
+        return game_state_path;
+    }
+
+    serialisation::load(game_state_path, opts);
+    return game_state_path;
+}
+
+int main(int argc, char* argv[])
+{
+    DevOptions dev_opts;
+    auto       game_state_path = load_persistent_data(argc, argv, dev_opts);
+
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
-
+    easing::Easer     easer;
     entity::Allocator alloca;
-
-    GameEvents game_events(easer);
-    DevOptions dev_opts;
-
-    //GameLoopTimer      game_loop{0};
-    int                         draw;
-    std::vector<entity::Player> players{
-        entity::make_player(alloca, {100.f, 100.f, 80.f, 80.f}),
-        entity::make_player(alloca, {200.f, 100.f, 80.f, 80.f})};
-    auto& player_1 = players[0];
-    auto& player_2 = players[1];
-
-    if (std::filesystem::exists(game_state_path))
-    {
-        serialisation::load(game_state_path, dev_opts);
-    }
-    else
-    {
-        printf("%s does not exist.", game_state_path.c_str());
-    }
+    GameState         game_events;
+    Keyboard          keyboard;
+    PlayerActions     player_actions(easer);
 
     // TODO: This leaks memory.
     kiss_array_new(&objects);
@@ -295,6 +218,11 @@ int main(int argc, char* argv[])
                          kiss_screen_height};
     GameHud  game_hud;
 
+    std::vector<entity::Player> players{
+        entity::make_player(alloca, {100.f, 100.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT}),
+        entity::make_player(alloca, {200.f, 100.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT})};
+    auto& player_1 = players[0];
+    auto& player_2 = players[1];
 
     // TODO VariadicDataEditor: Refactor how the window, grid and data are all created.
     VariadicDataEditor window_data(
@@ -352,7 +280,17 @@ int main(int argc, char* argv[])
     std::vector<SDL_FRect>            soft_boundaries;
     std::vector<SDL_FRect>            hard_boundaries;
     std::vector<SDL_FRect>            hard_bullet_boundaries;
+    std::vector<linalg::Vectorf<2>>   respawn_points;
+    make_level(kiss_screen_width,
+               kiss_screen_height,
+               soft_entities,
+               walls,
+               soft_boundaries,
+               hard_boundaries,
+               hard_bullet_boundaries,
+               respawn_points);
 
+    /*
     {
         soft_entities.push_back(entity::make_food());
         walls.push_back(entity::make_wall());
@@ -373,8 +311,9 @@ int main(int argc, char* argv[])
         assert(soft_entities.size() == soft_boundaries.size());
         assert(walls.size() == hard_boundaries.size());
     }
+    */
 
-    auto respawn_points = make_respawn_points(screen_rect, hard_boundaries);
+    // auto respawn_points = make_respawn_points(screen_rect, hard_boundaries);
 
     auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player_1.texture);
     int  accumilator               = 0;
@@ -411,7 +350,12 @@ int main(int argc, char* argv[])
             //std::cout << "dt: " << dit;
         }
 
-        handle_input_states(e, game_events, dev_opts);
+        update(keyboard);
+        player_actions_update(player_actions, keyboard);
+        game_state_update(game_events, keyboard);
+        dev_options_update(dev_opts, keyboard);
+
+        // handle_input_states(e, game_events, dev_opts);
 
         while (SDL_PollEvent(&e))
         {
@@ -419,13 +363,14 @@ int main(int argc, char* argv[])
             {
                 game_events.quit = 1;
             }
-
+            // TODO: Not really sure what draw does.
+            int draw = 0;
             editor_handle_events(window_data, &e, &draw);
-            game_hud.handle_events(&e, &draw, game_events);
-            handle_input_event(e, game_events, dev_opts);
+            // game_hud.handle_events(&e, &draw, game_events);
+            // handle_input_event(e, game_events, dev_opts);
         }
 
-        if (game_events.fire.get())
+        if (player_actions.fire.get())
         {
             player_1.fire();
         }
@@ -454,14 +399,14 @@ int main(int argc, char* argv[])
                  ++loop_idx)
             {
                 entity::set_input(player_1.s,
-                                  game_events.player_movement);
+                                  player_actions.player_movement);
                 entity::integrate(player_1.s,
                                   SIM_DT_STEP);
 
                 collision::detect_hard_collisions(SIM_DT,
                                                   SIM_DT_STEP,
                                                   loop_idx,
-                                                  game_events,
+                                                  player_actions,
                                                   player_1,
                                                   walls,
                                                   hard_boundaries,
@@ -474,7 +419,7 @@ int main(int argc, char* argv[])
             }
 
             entity::set_input(player_1.aim.s,
-                              game_events.player_rotation);
+                              player_actions.player_rotation);
             entity::integrate(player_1.aim.s,
                               SIM_DT);
 

@@ -2,7 +2,6 @@
 #define GAME_HUD_H
 
 #include "entity/core.hpp"
-#include "gameevents.h"
 #include "kiss_sdl.h"
 #include "linalg/matrix.hpp"
 #include <SDL2/SDL.h>
@@ -78,10 +77,6 @@ struct GameHud {
                              y_offset + (row * row_height),
                              100);
         hunger_bar.fraction = 0.5;
-    }
-
-    void handle_events(SDL_Event* event, int* draw, GameEvents& game_events)
-    {
     }
 
     void update(entity::Player& player)

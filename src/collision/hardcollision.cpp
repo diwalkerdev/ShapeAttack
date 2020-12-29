@@ -1,6 +1,6 @@
 #include "collision/core.hpp"
 #include "entity/core.hpp"
-#include "gameevents.h"
+#include "input/controller.hpp"
 #include "recthelper.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
@@ -10,7 +10,7 @@ namespace collision {
 void detect_hard_collisions(float                                    dt,
                             float                                    dt_step,
                             int                                      loop_idx,
-                            GameEvents const&                        game_events,
+                            PlayerActions const&                     game_events,
                             entity::Player&                          player,
                             std::vector<entity::EntityStatic> const& walls,
                             std::vector<SDL_FRect> const&            hard_boundaries,
