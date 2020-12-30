@@ -5,6 +5,9 @@
 #include "typedefs.h"
 #include <SDL2/SDL.h>
 
+constexpr int MAX_NUM_CONTROLLERS{4};
+
+// TODO GameState should be moved somewhere else.
 struct GameState {
     bool quit = false;
 };
@@ -21,13 +24,88 @@ struct PlayerActions {
     easing::Debounce      fire;
 };
 
-struct Controller
-{
-
+// Controller Stuff
+// ---------------------------------------------------------------------------
+struct ControllerState {
+    enum class States {
+        AnalogLeftX,
+        AnalogLeftY,
+        LT,
+        AnalogRightX,
+        AnalogRightY,
+        RT,
+        DPadX,
+        DPadY,
+        A,
+        B,
+        X,
+        Y,
+        LB,
+        RB,
+        Back,
+        Start,
+        Logo
+    };
+    array<int16, 17> states;
 };
 
+inline void enumerate_controllers(vector<SDL_Joystick*>& controllers, bool& is_okay)
+{
+    auto num_joysticks = SDL_NumJoysticks();
+    if (num_joysticks < 1)
+    {
+        printf("No controllers connected\n");
+        return;
+    }
+
+    // Only allow a maximum of 4 controllers to be connected.
+    num_joysticks = std::min(num_joysticks, MAX_NUM_CONTROLLERS);
+
+    for (size_t i = 0; i < num_joysticks; ++i)
+    {
+        auto* controller = SDL_JoystickOpen(i);
+        if (controller)
+        {
+            controllers.push_back(controller);
+        }
+        else
+        {
+            printf("Warning: Unable to open game controller! SDL Error: %s\n", SDL_GetError());
+            is_okay = false;
+        }
+    }
+}
+
+inline void free_controllers(vector<SDL_Joystick*> controllers)
+{
+    for (auto* c : controllers)
+    {
+        SDL_JoystickClose(c);
+    }
+}
+
+
+inline void update(ControllerState& k, SDL_Joystick* joystick)
+{
+    int num = SDL_JoystickNumAxes(joystick);
+    printf("Number of axes: %d\n", num);
+    assert(num >= 4);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        uint16 value = SDL_JoystickGetAxis(joystick, i);
+        k.states[i]  = value;
+    }
+}
+
+
+inline void player_update_actions(PlayerActions& actions, ControllerState& c) {}
+
+// Keyboard Stuff
+// ---------------------------------------------------------------------------
+
 // Useful as we may want to store for live loop editing.
-struct Keyboard {
+struct KeyboardState {
     static constexpr std::array<uint8, 16> scancodes{
         SDL_SCANCODE_LEFT,
         SDL_SCANCODE_RIGHT,
@@ -48,11 +126,7 @@ struct Keyboard {
     std::array<int8, 16> states;
 };
 
-inline void update(Controller& k)
-{
-}
-
-inline void update(Keyboard& k)
+inline void update(KeyboardState& k)
 {
     uint8 const* keyboard_state = SDL_GetKeyboardState(nullptr);
 
@@ -62,9 +136,7 @@ inline void update(Keyboard& k)
     }
 }
 
-inline void player_update_actions(PlayerActions& actions, Controller& c) {}
-
-inline void player_actions_update(PlayerActions& actions, Keyboard& k)
+inline void player_actions_update(PlayerActions& actions, KeyboardState& k)
 {
     int8 l = k.states[0];
     int8 r = k.states[1];
@@ -98,12 +170,12 @@ inline void player_actions_update(PlayerActions& actions, Keyboard& k)
     }
 }
 
-inline void game_state_update(GameState& state, Keyboard& k)
+inline void game_state_update(GameState& state, KeyboardState& k)
 {
     state.quit = k.states[15];
 }
 
-inline void dev_options_update(DevOptions& dev_opts, Keyboard& k)
+inline void dev_options_update(DevOptions& dev_opts, KeyboardState& k)
 {
     int8 h = k.states[14];
 

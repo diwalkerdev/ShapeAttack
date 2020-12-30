@@ -37,10 +37,23 @@ extern "C" {
 #include <time.h>
 #include <vector>
 
+//////////////////////////////////////////////////////////////////////////////
+
 // #define DISABLE_SIM
 // #define DISABLE_RENDER
 
 //////////////////////////////////////////////////////////////////////////////
+
+using high_res_clock = std::chrono::high_resolution_clock;
+
+//////////////////////////////////////////////////////////////////////////////
+
+namespace serialisation {
+extern auto save(std::filesystem::path const&, DevOptions&) -> void;
+extern auto load(std::filesystem::path const&, DevOptions&) -> void;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 SDL_Texture* load_texture(SDL_Renderer* renderer,
                           std::string   path)
@@ -93,15 +106,6 @@ void make_soft_boundaries(float w, float h, std::vector<entity::EntityStatic> co
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-namespace serialisation {
-extern auto save(std::filesystem::path const&, DevOptions&) -> void;
-extern auto load(std::filesystem::path const&, DevOptions&) -> void;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 auto make_respawn_points(float w, float h, std::vector<SDL_FRect> const& hard_boundaries)
 {
     auto xseg = w / 10.f;
@@ -127,14 +131,6 @@ auto make_respawn_points(float w, float h, std::vector<SDL_FRect> const& hard_bo
 
     assert(valid_spawn_points.size() > 10);
     return valid_spawn_points;
-}
-
-auto player_respawn(entity::Player&                        player,
-                    std::vector<linalg::Vectorf<2>> const& valid_points)
-{
-    int  index = std::rand() % valid_points.size();
-    auto point = valid_points.at(index);
-    player.respawn(point);
 }
 
 auto make_level(float                              w,
@@ -169,7 +165,14 @@ auto make_level(float                              w,
     respawn_points = make_respawn_points(w, h, hard_boundaries);
 }
 
-using high_res_clock = std::chrono::high_resolution_clock;
+auto player_respawn(entity::Player&                        player,
+                    std::vector<linalg::Vectorf<2>> const& valid_points)
+{
+    int  index = std::rand() % valid_points.size();
+    auto point = valid_points.at(index);
+    player.respawn(point);
+}
+
 
 auto load_persistent_data(int         argc,
                           char*       argv[],
@@ -192,17 +195,12 @@ auto load_persistent_data(int         argc,
 
 int main(int argc, char* argv[])
 {
-    DevOptions dev_opts;
-    auto       game_state_path = load_persistent_data(argc, argv, dev_opts);
-
+    // Initialise SDL and core components.
+    // Other things will break if these aren't done first.
+    // -----------------------------------------------------------------------
     SDL_Renderer* renderer;
     SDL_Event     e;
     kiss_array    objects;
-    easing::Easer     easer;
-    entity::Allocator alloca;
-    GameState         game_events;
-    Keyboard          keyboard;
-    PlayerActions     player_actions(easer);
 
     // TODO: This leaks memory.
     kiss_array_new(&objects);
@@ -211,12 +209,35 @@ int main(int argc, char* argv[])
                          SCREEN_WIDTH,
                          SCREEN_HEIGHT);
 
-    // Note, you MUST create the hud after kiss_init.
+    // TODO: Why do we need screen_rect?
     SDL_Rect screen_rect{0,
                          0,
                          kiss_screen_width,
                          kiss_screen_height};
-    GameHud  game_hud;
+
+    // Persistent Data
+    // -----------------------------------------------------------------------
+    DevOptions dev_opts;
+    auto       game_state_path = load_persistent_data(argc, argv, dev_opts);
+
+    // Engine Data
+    // -----------------------------------------------------------------------
+    easing::Easer         easer;
+    entity::Allocator     alloca;
+    // TODO: Below not engine data. Refactor.
+    GameState             game_events;
+    GameHud               game_hud;
+
+    // Input Setup.
+    // -----------------------------------------------------------------------
+    KeyboardState         keyboard;
+    ControllerState       controller_state;
+    PlayerActions         player_actions(easer);
+    vector<SDL_Joystick*> controllers;
+
+    bool controllers_okay = true;
+    enumerate_controllers(controllers, controllers_okay);
+    assert(controllers_okay);
 
     std::vector<entity::Player> players{
         entity::make_player(alloca, {100.f, 100.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT}),
@@ -290,30 +311,6 @@ int main(int argc, char* argv[])
                hard_bullet_boundaries,
                respawn_points);
 
-    /*
-    {
-        soft_entities.push_back(entity::make_food());
-        walls.push_back(entity::make_wall());
-        {
-            make_hard_boundaries(player_1.s->w,
-                                 player_1.s->h,
-                                 walls,
-                                 hard_boundaries);
-            make_soft_boundaries(player_1.s,
-                                 soft_entities,
-                                 soft_boundaries);
-        }
-
-        {
-            make_hard_boundaries(entity::BULLET_WIDTH, entity::BULLET_HEIGHT, walls, hard_bullet_boundaries);
-        }
-
-        assert(soft_entities.size() == soft_boundaries.size());
-        assert(walls.size() == hard_boundaries.size());
-    }
-    */
-
-    // auto respawn_points = make_respawn_points(screen_rect, hard_boundaries);
 
     auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player_1.texture);
     int  accumilator               = 0;
@@ -351,6 +348,15 @@ int main(int argc, char* argv[])
         }
 
         update(keyboard);
+        if (controllers.size() > 0)
+        {
+            update(controller_state, controllers[0]);
+            for (int i = 0; i < 6; ++i)
+            {
+                printf("%d\t", controller_state.states[i]);
+            }
+            printf("\n");
+        }
         player_actions_update(player_actions, keyboard);
         game_state_update(game_events, keyboard);
         dev_options_update(dev_opts, keyboard);
@@ -615,6 +621,6 @@ int main(int argc, char* argv[])
     } // end while
 
     serialisation::save(game_state_path, dev_opts);
-
+    free_controllers(controllers);
     kiss_clean(&objects);
 }
