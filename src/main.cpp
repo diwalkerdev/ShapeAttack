@@ -233,7 +233,7 @@ int main(int argc, char* argv[])
     KeyboardState         keyboard;
     ControllerState       controller_state;
     PlayerActions         player_actions(easer);
-    vector<SDL_Joystick*> controllers;
+    vector<SDL_GameController*> controllers;
 
     bool controllers_okay = true;
     enumerate_controllers(controllers, controllers_okay);
@@ -347,17 +347,26 @@ int main(int argc, char* argv[])
             //std::cout << "dt: " << dit;
         }
 
+        // BOOKMARK: Input handling
         update(keyboard);
         if (controllers.size() > 0)
         {
             update(controller_state, controllers[0]);
-            for (int i = 0; i < 6; ++i)
+            for (auto state : controller_state.axis_states)
             {
-                printf("%d\t", controller_state.states[i]);
+                printf("%d\t", state);
+            }
+            printf("\n");
+
+            printf("abxybgslrlrudlri\n");
+
+            for (auto state : controller_state.button_states)
+            {
+                printf("%1d", state);
             }
             printf("\n");
         }
-        player_actions_update(player_actions, keyboard);
+        player_actions_update(player_actions, controller_state);
         game_state_update(game_events, keyboard);
         dev_options_update(dev_opts, keyboard);
 
