@@ -1,6 +1,7 @@
 #pragma once
 
 #include "algorithms/find.hpp"
+#include "animation/core.hpp"
 #include "collision/collision.hpp"
 #include "containers/backfill_vector.hpp"
 #include "entity/entity.hpp"
@@ -91,6 +92,11 @@ struct Player {
     backfill_vector<Bullet, 10> bullets;
 
     SDL_Texture* texture;
+
+    int                  accumilator;
+    int                  frame;
+    animation::Direction direction;
+
     float        health;
     float        restitution;
 
@@ -102,6 +108,8 @@ struct Player {
 
     void respawn(linalg::Vectorf<2> const& point)
     {
+        printf("Respawn %f  %f\n", point[0], point[1]);
+
         entity::Entity* e = s;
         e->X[0][0]        = point[0];
         e->X[0][1]        = point[1];
@@ -167,6 +175,11 @@ inline auto make_player(entity::Allocator& alloca, SDL_FRect rect) -> Player
     player.crosshair   = entity::make_crosshair();
     player.health      = 0.5f;
     player.restitution = 0.5f;
+
+    // TODO: Review animation stuff. Should it live here, are all variables necessary?
+    player.accumilator = 0;
+    player.frame       = 0;
+    player.direction   = animation::Direction::RIGHT;
 
     // We need to initialise all the bullets, even though they are not in use.
     // Hence why we use std::for_each with back() rather than a normal foreach

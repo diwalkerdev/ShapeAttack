@@ -1,4 +1,5 @@
 #pragma once
+
 #include "easing/core.hpp"
 #include "gameevents.h"
 #include "linalg/matrix.hpp"
@@ -106,6 +107,15 @@ inline void update(ControllerState& k, SDL_GameController* joystick)
     }
 }
 
+inline void update(vector<ControllerState>& k, vector<SDL_GameController*>& j)
+{
+    assert(k.size() == j.size());
+    for (int i = 0; i < k.size(); ++i)
+    {
+        update(k[i], j[i]);
+    }
+}
+
 inline void player_actions_update(PlayerActions& actions, ControllerState& k)
 {
     int8 u = k.button_states[SDL_CONTROLLER_BUTTON_DPAD_UP];
@@ -138,6 +148,15 @@ inline void player_actions_update(PlayerActions& actions, ControllerState& k)
         actions.player_rotation = {{0.f, float(cw - cc)}};
 
         actions.fire.set(fire);
+    }
+}
+
+inline void player_actions_update(vector<PlayerActions>& p, vector<ControllerState>& c)
+{
+    assert(p.size() == c.size());
+    for (size_t i = 0; i < c.size(); ++i)
+    {
+        player_actions_update(p[i], c[i]);
     }
 }
 
@@ -222,5 +241,132 @@ inline void dev_options_update(DevOptions& dev_opts, KeyboardState& k)
     if (h)
     {
         dev_opts.display_hud = !dev_opts.display_hud;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+enum class ControllerType {
+    Undefined = -1,
+    Keyboard,
+    Gamepad
+};
+
+struct ControllerUnion {
+    const size_t player_id;
+
+    const ControllerType kind;
+    union {
+        KeyboardState   keyboard_state;
+        struct {
+            SDL_GameController* gamepad;
+            ControllerState     gamepad_state;
+        };
+    };
+
+    mutable PlayerActions actions;
+};
+
+inline auto make_keyboard_controller(size_t id, easing::Easer& easer)
+{
+    ControllerUnion u{
+        .player_id = id,
+        .kind      = ControllerType::Keyboard,
+        .keyboard_state{},
+        .actions{easer}};
+
+    return u;
+}
+
+inline auto make_gamepad_controller(size_t id, SDL_GameController* c, easing::Easer& easer)
+{
+    ControllerUnion u{
+        .player_id = id,
+        .kind      = ControllerType::Gamepad,
+        .gamepad   = c,
+        .gamepad_state{},
+        .actions{easer}};
+
+    return u;
+}
+
+inline void update(ControllerUnion& u)
+{
+    if (u.kind == ControllerType::Keyboard)
+    {
+        update(u.keyboard_state);
+        player_actions_update(u.actions, u.keyboard_state);
+    }
+    else if (u.kind == ControllerType::Gamepad)
+    {
+        update(u.gamepad_state, u.gamepad);
+        player_actions_update(u.actions, u.gamepad_state);
+    }
+    else
+    {
+        assert(false);
+    }
+}
+
+inline void update(vector<ControllerUnion>& controllers)
+{
+    for (auto& u : controllers)
+    {
+        update(u);
+    }
+}
+
+inline auto find_keyboard_controller(vector<ControllerUnion>& controllers, bool& is_okay) -> ControllerUnion&
+{
+    for (auto& c : controllers)
+    {
+        if (c.kind == ControllerType::Keyboard)
+        {
+            is_okay = true;
+            return c;
+        }
+    }
+
+    is_okay = false;
+    return controllers[0];
+}
+
+inline void print(ControllerUnion& u)
+{
+    if (u.kind == ControllerType::Gamepad)
+    {
+        for (auto state : u.gamepad_state.axis_states)
+        {
+            printf("%d\t", state);
+        }
+        printf("\n");
+
+        printf("abxybgslrlrudlri\n");
+
+        for (auto state : u.gamepad_state.button_states)
+        {
+            printf("%1d", state);
+        }
+        printf("\n");
+    }
+    else if (u.kind == ControllerType::Keyboard)
+    {
+        for (auto state : u.keyboard_state.states)
+        {
+            printf("%1d", state);
+        }
+        printf("\n");
+    }
+    else
+    {
+        assert(false);
+    }
+}
+
+inline void print(vector<ControllerUnion>& controllers)
+{
+    for (auto& u : controllers)
+    {
+        print(u);
     }
 }

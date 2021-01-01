@@ -61,14 +61,14 @@ constexpr static const float SEGS[4]{
     45.f * 5 * M_PI / 180.f,
     45.f * 7 * M_PI / 180.f};
 
-auto is_in_segment(int seg, float theta)
+inline auto is_in_segment(int seg, float theta)
 {
     return (theta >= SEGS[seg] && theta < SEGS[seg + 1]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-auto determine_direction(float theta)
+inline auto determine_direction(float theta)
 {
     Direction direction;
 

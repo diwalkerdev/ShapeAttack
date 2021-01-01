@@ -222,36 +222,60 @@ int main(int argc, char* argv[])
 
     // Engine Data
     // -----------------------------------------------------------------------
-    easing::Easer         easer;
-    entity::Allocator     alloca;
+    easing::Easer     easer;
+    entity::Allocator alloca;
     // TODO: Below not engine data. Refactor.
-    GameState             game_events;
-    GameHud               game_hud;
+    GameState game_events;
+    GameHud   game_hud;
 
     // Input Setup.
     // -----------------------------------------------------------------------
-    KeyboardState         keyboard;
-    ControllerState       controller_state;
-    PlayerActions         player_actions(easer);
-    vector<SDL_GameController*> controllers;
 
-    bool controllers_okay = true;
+    // Begin by detecting the number of game controllers. We will create a
+    // player for each controller detected. We will then add one more player
+    // which will be controlled by the keyboard.
+    // Note: We only support game controllers and not joysticks at this time.
+    //
+    vector<SDL_GameController*> controllers;
+    bool                        controllers_okay = true;
     enumerate_controllers(controllers, controllers_okay);
     assert(controllers_okay);
 
-    std::vector<entity::Player> players{
-        entity::make_player(alloca, {100.f, 100.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT}),
-        entity::make_player(alloca, {200.f, 100.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT})};
-    auto& player_1 = players[0];
-    auto& player_2 = players[1];
+    vector<entity::Player>  players;
+    vector<ControllerUnion> controller_map;
+
+    // Create the player for the keyboard.
+    auto player    = entity::make_player(alloca,
+                                      {0.f, 0.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT});
+    player.texture = load_texture(renderer,
+                                  "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
+
+    players.push_back(player);
+    controller_map.push_back(make_keyboard_controller(players.size() - 1,
+                                                      easer));
+
+
+    // Create a player for each controller.
+    for (size_t i = 0; i < controllers.size(); ++i)
+    {
+        auto player    = entity::make_player(alloca,
+                                          {0.f, 0.f, entity::PLAYER_WIDTH, entity::PLAYER_HEIGHT});
+        player.texture = load_texture(renderer,
+                                      "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
+        players.push_back(player);
+        controller_map.push_back(make_gamepad_controller(players.size() - 1,
+                                                         controllers[i],
+                                                         easer));
+    }
+
+    printf("Num Players %lu\n", players.size());
+    printf("Controllers %lu\n", controllers.size());
 
     // TODO VariadicDataEditor: Refactor how the window, grid and data are all created.
     VariadicDataEditor window_data(
         // std::tuple{"FPS", (const float*)&fps},
         std::tuple{"Draw Minkowski", &dev_opts.draw_minkowski},
-        std::tuple{"Show Vectors", &dev_opts.draw_vectors},
-        std::tuple{"Player x", (const float*)&player_1.s->X[0][0]},
-        std::tuple{"Player y", (const float*)&player_1.s->X[0][1]});
+        std::tuple{"Show Vectors", &dev_opts.draw_vectors});
 
     kiss_window editor_window;
     kiss_window_new(&editor_window,
@@ -273,12 +297,6 @@ int main(int argc, char* argv[])
                SDL_GetError());
         return -1;
     }
-
-    player_1.texture = load_texture(renderer,
-                                    "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
-
-    player_2.texture = load_texture(renderer,
-                                    "/home/dwalker0044/Projects/Untitled2D/res/lruptest.png");
 
     auto* dev_hud_texture = SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_ABGR8888,
@@ -312,11 +330,7 @@ int main(int argc, char* argv[])
                respawn_points);
 
 
-    auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(player_1.texture);
-    int  accumilator               = 0;
-    int  frame                     = 0;
-
-    animation::Direction direction = animation::Direction::RIGHT;
+    auto player_texture_descriptor = animation::make_LRUPDescriptor<2>(players[0].texture);
 
     // Game loop timer stuff.
     auto         clock = high_res_clock();
@@ -330,6 +344,11 @@ int main(int argc, char* argv[])
     const double SIM_DT             = 0.05;
     const double SIM_DT_STEP        = SIM_DT / 4;
 
+    // Make sure the players are placed somewhere sensible before the game starts.
+    for (auto& player : players)
+    {
+        player_respawn(player, respawn_points);
+    }
 
     while (!game_events.quit)
     {
@@ -348,29 +367,6 @@ int main(int argc, char* argv[])
         }
 
         // BOOKMARK: Input handling
-        update(keyboard);
-        if (controllers.size() > 0)
-        {
-            update(controller_state, controllers[0]);
-            for (auto state : controller_state.axis_states)
-            {
-                printf("%d\t", state);
-            }
-            printf("\n");
-
-            printf("abxybgslrlrudlri\n");
-
-            for (auto state : controller_state.button_states)
-            {
-                printf("%1d", state);
-            }
-            printf("\n");
-        }
-        player_actions_update(player_actions, controller_state);
-        game_state_update(game_events, keyboard);
-        dev_options_update(dev_opts, keyboard);
-
-        // handle_input_states(e, game_events, dev_opts);
 
         while (SDL_PollEvent(&e))
         {
@@ -381,17 +377,32 @@ int main(int argc, char* argv[])
             // TODO: Not really sure what draw does.
             int draw = 0;
             editor_handle_events(window_data, &e, &draw);
-            // game_hud.handle_events(&e, &draw, game_events);
-            // handle_input_event(e, game_events, dev_opts);
         }
 
-        if (player_actions.fire.get())
+        update(controller_map);
+
+        bool             found_keyboard;
+        ControllerUnion& keyboard_controller = find_keyboard_controller(controller_map, found_keyboard);
+        assert(found_keyboard);
+
+        game_state_update(game_events, keyboard_controller.keyboard_state);
+        dev_options_update(dev_opts, keyboard_controller.keyboard_state);
+
+        // print(controller_map);
+        for (auto& controller : controller_map)
         {
-            player_1.fire();
+            entity::Player& player = players[controller.player_id];
+            PlayerActions&  action = controller.actions;
+
+            if (action.fire.get())
+            {
+                player.fire();
+            }
         }
 
 #ifdef DISABLE_SIM
 #else
+
         bool simulation_ran = false;
         while (accumulator > SIM_DT)
         {
@@ -399,59 +410,58 @@ int main(int argc, char* argv[])
             simulation_ran = true;
             accumulator -= SIM_DT;
 
-            // Update gameplay.
-            auto player_copy = player_1;
-            bool collided    = false;
-
-            // Collision detection loop.
-            //
-            // TODO: different strategies? if collision first attempt then go smaller than dt_step?
-            // Could also try a binary search like thing.
-            // TODO: this doesn't handle colliding with several objects at once.
-
-            for (int loop_idx = 0;
-                 (loop_idx < 4) && !collided;
-                 ++loop_idx)
+            for (auto& controller : controller_map)
             {
-                entity::set_input(player_1.s,
-                                  player_actions.player_movement);
-                entity::integrate(player_1.s,
-                                  SIM_DT_STEP);
+                entity::Player& player_1         = players[controller.player_id];
+                PlayerActions&  player_1_actions = controller.actions;
 
-                collision::detect_hard_collisions(SIM_DT,
-                                                  SIM_DT_STEP,
-                                                  loop_idx,
-                                                  player_actions,
-                                                  player_1,
-                                                  walls,
-                                                  hard_boundaries,
-                                                  collided);
+                auto player_copy = player_1;
+                bool collided    = false;
 
-                // Note(DW): Doesn't need dt as player position is updated and soft collisions are static.
-                collision::detect_soft_collisions(player_1,
-                                                  soft_entities,
-                                                  soft_boundaries);
-            }
+                // Collision detection loop.
+                //
+                // TODO: different strategies? if collision first attempt then go smaller than dt_step?
+                // Could also try a binary search like thing.
+                // TODO: this doesn't handle colliding with several objects at once.
 
-            entity::set_input(player_1.aim.s,
-                              player_actions.player_rotation);
-            entity::integrate(player_1.aim.s,
-                              SIM_DT);
-
-            //entity::integrate(player_1.crosshair,
-            //SIM_DT);
-
-            update_bullets(player_1,
-                           players,
-                           hard_bullet_boundaries,
-                           screen_rect,
-                           SIM_DT);
-
-            for (auto& player : players)
-            {
-                if (player.health < 0.f)
+                for (int loop_idx = 0;
+                     (loop_idx < 4) && !collided;
+                     ++loop_idx)
                 {
-                    player_respawn(player, respawn_points);
+                    entity::set_input(player_1.s,
+                                      player_1_actions.player_movement);
+                    entity::integrate(player_1.s,
+                                      SIM_DT_STEP);
+
+                    collision::detect_hard_collisions(SIM_DT,
+                                                      SIM_DT_STEP,
+                                                      loop_idx,
+                                                      player_1_actions,
+                                                      player_1,
+                                                      walls,
+                                                      hard_boundaries,
+                                                      collided);
+
+                    // Note(DW): Doesn't need dt as player position is updated and soft collisions are static.
+                    collision::detect_soft_collisions(player_1,
+                                                      soft_entities,
+                                                      soft_boundaries);
+                }
+
+                entity::set_input(player_1.aim.s,
+                                  player_1_actions.player_rotation);
+                entity::integrate(player_1.aim.s,
+                                  SIM_DT);
+
+                update_bullets(player_1,
+                               players,
+                               hard_bullet_boundaries,
+                               screen_rect,
+                               SIM_DT);
+
+                if (player_1.health < 0.f)
+                {
+                    player_respawn(player_1, respawn_points);
                 }
             }
         } // end sim loop
@@ -479,39 +489,44 @@ int main(int argc, char* argv[])
         bool render_ran = false;
         while (render_accumulator > 0.03)
         {
-            //printf("r");
+            // printf("r");
             render_accumulator -= 0.03;
 
             // Want to check that the render only runs once per loop.
             assert(render_ran == false);
             render_ran = true;
 
-#ifdef DISABLE_RENDER
-#else
-
-            SDL_Rect player_texture_src_rect;
-            // Animations
-            {
-                auto const& pX = player_1.s->X;
-
-                linalg::Vectorf<2> vel{{pX[1][0], pX[1][1]}};
-                player_texture_src_rect = animation::animate(player_texture_descriptor,
-                                                             vel,
-                                                             direction,
-                                                             accumilator,
-                                                             frame);
-            }
-
-            // Render player.
+            // Clear the screen.
             {
                 SDL_SetRenderTarget(renderer, nullptr);
                 SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
                 SDL_RenderClear(renderer);
+            }
 
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+#ifdef DISABLE_RENDER
+#else
 
-                for (auto const& player : players)
+            for (auto& player : players)
+            {
+                SDL_Rect player_texture_src_rect;
+
+                // Animate
                 {
+                    auto const& pX = player.s->X;
+
+                    linalg::Vectorf<2> vel{{pX[1][0], pX[1][1]}};
+                    player_texture_src_rect = animation::animate(
+                        player_texture_descriptor,
+                        vel,
+                        player.direction,
+                        player.accumilator,
+                        player.frame);
+                }
+
+                // Render player.
+                {
+                    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff);
+
                     SDL_FRect dst = to_screen_rect(sdl_rect(player.r));
 
                     SDL_RenderCopyF(renderer,
@@ -522,11 +537,11 @@ int main(int argc, char* argv[])
 
                 // Render crosshair.
                 {
-                    entity::update_crosshair(player_1);
+                    entity::update_crosshair(player);
 
                     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
 
-                    SDL_FRect fdst = to_screen_rect(player_1.crosshair.rect);
+                    SDL_FRect fdst = to_screen_rect(player.crosshair.rect);
                     SDL_RenderFillRectF(renderer, &fdst);
                 }
 
@@ -534,7 +549,7 @@ int main(int argc, char* argv[])
                 {
                     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
 
-                    for (auto& bullet : player_1.bullets)
+                    for (auto& bullet : player.bullets)
                     {
                         SDL_FRect fdst = to_screen_rect(sdl_rect(bullet.r));
                         SDL_RenderFillRectF(renderer, &fdst);
@@ -578,26 +593,30 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
-                if (dev_opts.draw_vectors)
+                for (auto const& player : players)
                 {
-                    auto const& pX = player_1.r->X;
-                    auto const& pY = player_1.r->Y;
-                    drawing::draw_vector(renderer,
-                                         pX[0][0],
-                                         pX[0][1],
-                                         pY[1][0],
-                                         pY[1][1]);
+                    SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0x00, 0xff);
+                    if (dev_opts.draw_vectors)
+                    {
+                        auto const& pX = player.r->X;
+                        auto const& pY = player.r->Y;
+                        drawing::draw_vector(renderer,
+                                             pX[0][0],
+                                             pX[0][1],
+                                             pY[1][0],
+                                             pY[1][1]);
+                    }
                 }
             }
 
-#endif // DISABLE_RENDER
-
             // Render game hud.
             {
-                game_hud.update(player_2);
+                // TODO: Handle multiple players.
+                //game_hud.update(player_2);
                 game_hud.render(renderer, game_hud_texture);
             }
+
+#endif // DISABLE_RENDER
 
             // Render dev hud. This is a bit wasteful if the hud is not enabled
             // however for not it is good to do so we can keep an eye on CPU usage.
